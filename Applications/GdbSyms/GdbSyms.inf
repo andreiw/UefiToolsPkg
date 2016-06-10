@@ -1,0 +1,36 @@
+#
+# Time-stamp: <2016-06-10 01:42:43 andreiw>
+# Copyright (C) 2016 Andrei Evgenievich Warkentin
+#
+# This program and the accompanying materials
+# are licensed and made available under the terms and conditions of the BSD License
+# which accompanies this distribution.  The full text of the license may be found at
+# http://opensource.org/licenses/bsd-license.php
+#
+# THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+# WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = GdbSyms
+  FILE_GUID                      = 22abcb60-fb40-42ac-b01f-3ab1fad9aad8
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Initialize
+
+[Sources]
+  GdbSyms.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+
+[Guids]
+
+[Protocols]
+

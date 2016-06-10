@@ -1,5 +1,5 @@
 #
-# Time-stamp: <2016-06-10 01:19:50 andreiw>
+# Time-stamp: <2016-06-10 01:38:28 andreiw>
 # Copyright (C) 2016 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
@@ -60,5 +60,6 @@
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
 
 [Components]
+  UefiToolsPkg/Applications/GdbSyms/GdbSyms.inf
   UefiToolsPkg/Applications/AcpiDump/AcpiDump.inf
   UefiToolsPkg/Applications/AcpiLoader/AcpiLoader.inf
