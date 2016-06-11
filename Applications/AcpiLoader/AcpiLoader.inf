@@ -1,5 +1,5 @@
 #
-# Time-stamp: <2016-06-10 00:14:05 andreiw>
+# Time-stamp: <2016-06-11 00:49:02 andreiw>
 # Copyright (C) 2016 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
@@ -26,9 +26,11 @@
 [Packages]
   MdePkg/MdePkg.dec
   ShellPkg/ShellPkg.dec
+  UefiToolsPkg/UefiToolsPkg.dec
 
 [LibraryClasses]
   UefiApplicationEntryPoint
+  UtilsLib
   UefiLib
 
 [Guids]

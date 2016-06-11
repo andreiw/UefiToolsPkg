@@ -1,5 +1,5 @@
 #
-# Time-stamp: <2016-06-10 00:12:19 andreiw>
+# Time-stamp: <2016-06-11 00:39:06 andreiw>
 # Copyright (C) 2016 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
@@ -17,7 +17,13 @@
   PACKAGE_GUID                   = B3E3D4D5-D42B-4497-A175-464F489D127E
   PACKAGE_VERSION                = 0.01
 
+[Includes]
+  Include
+
+[LibraryClasses]
+  UtilsLib|Include/Library/UtilsLib.h
+
 [Guids]
-  gAppPkgTokenSpaceGuid          = { 0xe7e2deb5, 0x7607, 0x4a78, { 0xa7, 0xdd, 0x43, 0xe4, 0xbd, 0x72, 0xc0, 0x99 }}
+  gUefiToolsPkgTokenSpaceGuid    = { 0xaba2deb5, 0x7607, 0x4a78, { 0xa7, 0xdd, 0x43, 0xe4, 0xbd, 0x72, 0xc0, 0x99 }}
 
 [PcdsFixedAtBuild]

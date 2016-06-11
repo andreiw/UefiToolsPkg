@@ -1,4 +1,4 @@
-/* Time-stamp: <2016-06-10 00:24:06 andreiw>
+/* Time-stamp: <2016-06-11 00:50:04 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -11,9 +11,9 @@
  */
 
 #include <Uefi.h>
-#include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
+#include <Library/UtilsLib.h>
 
 #include <IndustryStandard/Acpi.h>
 #include <Protocol/SimpleFileSystem.h>

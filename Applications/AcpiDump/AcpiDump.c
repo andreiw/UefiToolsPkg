@@ -1,4 +1,4 @@
-/* Time-stamp: <2016-06-10 00:24:39 andreiw>
+/* Time-stamp: <2016-06-11 00:47:52 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -11,33 +11,24 @@
  */
 
 #include <Uefi.h>
-#include <Library/BaseMemoryLib.h>
-#include <Library/DebugLib.h>
-#include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
+#include <Library/UefiBootServicesTableLib.h>
+#include <Library/UtilsLib.h>
 
 #include <IndustryStandard/Acpi.h>
-#include <Protocol/SimpleFileSystem.h>
 #include <Protocol/LoadedImage.h>
 #include <Protocol/EfiShellParameters.h>
 
-#include <Guid/FileInfo.h>
 #include <Guid/Acpi.h>
 
 EFI_STATUS
-FileSystemSave (
-                IN EFI_HANDLE Handle,
-                IN CHAR16 *VolSubDir,
-                IN EFI_ACPI_DESCRIPTION_HEADER *Table
-               )
+TableSave (
+           IN EFI_HANDLE Handle,
+           IN CHAR16 *VolSubDir,
+           IN EFI_ACPI_DESCRIPTION_HEADER *Table
+           )
 {
-  EFI_STATUS Status;
-  EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FsProtocol;
-  EFI_FILE_PROTOCOL *Fs;
-  EFI_FILE_PROTOCOL *Dir;
-  EFI_FILE_PROTOCOL *File;
   CHAR16 Path[4 + 1 + 3 + 1];
-  UINTN Size;
 
   Print(L"Table %.4a @ %p (0x%x bytes)\n", &Table->Signature, Table, Table->Length);
 
@@ -51,74 +42,7 @@ FileSystemSave (
   Path[7] = L'l';
   Path[8] = L'\0';
 
-  Status = gBS->HandleProtocol (Handle, &gEfiSimpleFileSystemProtocolGuid, (void **) &FsProtocol);
-  if (Status != EFI_SUCCESS) {
-    Print(L"Could not open filesystem: %r\n", Status);
-    return Status;
-  }
-
-  Status = FsProtocol->OpenVolume (FsProtocol, &Fs);
-  if (Status != EFI_SUCCESS) {
-    Print(L"Could not open volume: %r\n", Status);
-    return Status;
-  }
-
-  Status = Fs->Open (Fs, &Dir, VolSubDir, EFI_FILE_MODE_CREATE |
-                     EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE,
-                     EFI_FILE_DIRECTORY);
-  if (Status != EFI_SUCCESS) {
-    Print(L"Could not open '\\%s': %r\n", VolSubDir, Status);
-    return Status;
-  }
-
-  if (Dir->Open (Dir, &File, Path, EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0) == EFI_SUCCESS) {
-    /*
-     * Delete existing file.
-     */
-    Status = Dir->Delete (File);
-    File = NULL;
-    if (Status != EFI_SUCCESS) {
-      Print(L"Could not delete existing '\\%s\\%s': %r\n", VolSubDir, Path, Status);
-      goto closeDir;
-    }
-  }
-
-  Status = Dir->Open (Dir, &File, Path, EFI_FILE_MODE_CREATE | EFI_FILE_MODE_READ |
-                      EFI_FILE_MODE_WRITE, 0);
-  if (Status != EFI_SUCCESS) {
-    Print(L"Could not open '\\%s\\%s': %r\n", VolSubDir, Path, Status);
-    goto closeDir;
-    return Status;
-  }
-
-  Size = Table->Length;
-  Status = File->Write (File, &Size, (void *) Table);
-  if (Status != EFI_SUCCESS || Size != Table->Length) {
-    Print(L"Writing '\\%s\\%s' failed: %r\n", VolSubDir, Path, Status);
-  } else {
-    File->Flush (File);
-  }
-
-  Dir->Close (File);
- closeDir:
-  Fs->Close (Dir);
-  return Status;
-}
-
-VOID *
-GetTable (
-          IN EFI_GUID *Guid
-          )
-{
-  UINTN i;
-
-  for (i = 0; i < gST->NumberOfTableEntries; i++) {
-    if (CompareGuid (&gST->ConfigurationTable[i].VendorGuid, Guid)) {
-      return gST->ConfigurationTable[i].VendorTable;
-    }
-  }
-
-  return NULL;
+  return FileSystemSave(Handle, VolSubDir, Path, Table, Table->Length);
 }
 
 EFI_STATUS
@@ -203,7 +127,7 @@ UefiMain (
       continue;
     }
 
-    FileSystemSave(ImageProtocol->DeviceHandle, VolSubDir, TableHeader);
+    TableSave(ImageProtocol->DeviceHandle, VolSubDir, TableHeader);
 
     if (TableHeader->Signature == EFI_ACPI_5_1_FIXED_ACPI_DESCRIPTION_TABLE_SIGNATURE) {
       EFI_ACPI_DESCRIPTION_HEADER *DsdtHeader;
@@ -223,11 +147,11 @@ UefiMain (
       }
 
       if (DsdtHeader != NULL) {
-        FileSystemSave(ImageProtocol->DeviceHandle, VolSubDir, DsdtHeader);
+        TableSave(ImageProtocol->DeviceHandle, VolSubDir, DsdtHeader);
       }
 
       if (FacsHeader != NULL) {
-        FileSystemSave(ImageProtocol->DeviceHandle, VolSubDir, FacsHeader);
+        TableSave(ImageProtocol->DeviceHandle, VolSubDir, FacsHeader);
       }
     }
   }

@@ -1,5 +1,5 @@
 #
-# Time-stamp: <2016-06-11 01:02:15 andreiw>
+# Time-stamp: <2016-06-11 01:04:07 andreiw>
 # Copyright (C) 2016 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
@@ -58,6 +58,7 @@
   BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
+  UtilsLib|UefiToolsPkg/Library/UtilsLib/UtilsLib.inf
 
 [LibraryClasses.ARM,LibraryClasses.AARCH64,LibraryClasses.PPC64]
   FdtLib|EmbeddedPkg/Library/FdtLib/FdtLib.inf
