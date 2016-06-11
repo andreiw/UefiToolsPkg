@@ -3,7 +3,7 @@ UefiToolsPkg
 
 Various useful utilities for UEFI.
 
-* FdtDump     - Dump systen device tree to storage.
+* FdtDump     - Dump system device tree to storage.
 * AcpiDump    - Dump system ACPI tables to storage.
 * AcpiLoader  - Load system ACPI tables from storage.
 * gdb_uefi.py - Load TianoCore symbols in gdb.
