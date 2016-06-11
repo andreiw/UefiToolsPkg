@@ -3,6 +3,7 @@ UefiToolsPkg
 
 Various useful utilities for UEFI.
 
+* FdtDump     - Dump systen device tree to storage.
 * AcpiDump    - Dump system ACPI tables to storage.
 * AcpiLoader  - Load system ACPI tables from storage.
 * gdb_uefi.py - Load TianoCore symbols in gdb.
@@ -23,6 +24,22 @@ To override architecture and/or toolchain:
     $ build -p UefiToolsPkg/UefiToolsPkg.dsc -a X64 -t GCC49
 
 There's no architecture-specific code.
+
+FdtDump
+-------
+
+FdtDump will dump the device tree blob to the same volume
+the tool is located on. This is sometimes useful, but keep
+in mind that some UEFI implementations can patch the DTB
+on the way out during ExitBootServices, meaning you might
+not get the same (correct) data if you dumped the DTB from
+the OS proper.
+
+An optional parameter specifies the path, relative to the
+volume root, where to place the tables. E.g.:
+
+    fs16:> FdtDump.efi
+    fs16:> FdtDump.efi MyFunkySystem
 
 AcpiDump
 --------
