@@ -1,4 +1,4 @@
-/* Time-stamp: <2016-06-10 23:53:48 andreiw>
+/* Time-stamp: <2016-06-11 01:02:34 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
