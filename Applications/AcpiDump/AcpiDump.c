@@ -1,4 +1,4 @@
-/* Time-stamp: <2016-06-11 00:47:52 andreiw>
+/* Time-stamp: <2016-06-21 23:42:06 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -21,6 +21,7 @@
 
 #include <Guid/Acpi.h>
 
+static
 EFI_STATUS
 TableSave (
            IN EFI_HANDLE Handle,
@@ -28,19 +29,25 @@ TableSave (
            IN EFI_ACPI_DESCRIPTION_HEADER *Table
            )
 {
-  CHAR16 Path[4 + 1 + 3 + 1];
+  static unsigned Index;
+  CHAR16 Path[3 + 4 + 1 + 3 + 1];
 
   Print(L"Table %.4a @ %p (0x%x bytes)\n", &Table->Signature, Table, Table->Length);
 
-  Path[0] = ((CHAR8 *) &Table->Signature)[0];
-  Path[1] = ((CHAR8 *) &Table->Signature)[1];
-  Path[2] = ((CHAR8 *) &Table->Signature)[2];
-  Path[3] = ((CHAR8 *) &Table->Signature)[3];
-  Path[4] = L'.';
-  Path[5] = L'a';
-  Path[6] = L'm';
-  Path[7] = L'l';
-  Path[8] = L'\0';
+  Index = Index % 100;
+  Path[0] = '0' + Index / 10;
+  Path[1] = '0' + Index % 10;
+  Path[2] = '-';
+  Path[3] = ((CHAR8 *) &Table->Signature)[0];
+  Path[4] = ((CHAR8 *) &Table->Signature)[1];
+  Path[5] = ((CHAR8 *) &Table->Signature)[2];
+  Path[6] = ((CHAR8 *) &Table->Signature)[3];
+  Path[7] = L'.';
+  Path[8] = L'a';
+  Path[9] = L'm';
+  Path[10] = L'l';
+  Path[11] = L'\0';
+  Index++;
 
   return FileSystemSave(Handle, VolSubDir, Path, Table, Table->Length);
 }
