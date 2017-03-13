@@ -28,4 +28,6 @@ GetTable (
           IN EFI_GUID *Guid
           );
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
 #endif /* _UTILS_LIB_H_ */

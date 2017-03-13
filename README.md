@@ -3,10 +3,13 @@ UefiToolsPkg
 
 Various useful utilities for UEFI.
 
-* FdtDump     - Dump system device tree to storage.
-* AcpiDump    - Dump system ACPI tables to storage.
-* AcpiLoader  - Load system ACPI tables from storage.
-* gdb_uefi.py - Load TianoCore symbols in gdb.
+* FdtDump       - Dump system device tree to storage.
+* AcpiDump      - Dump system ACPI tables to storage.
+* AcpiLoader    - Load system ACPI tables from storage.
+* ShellPlatVars - Set UEFI Shell environment variables
+                  based on platform ACPI/SMBIOS
+                  configuration.
+* gdb_uefi.py   - Load TianoCore symbols in gdb.
 
 Building
 --------
@@ -79,6 +82,57 @@ Features (or limitations, depending on how you look):
 * No special ordering (i.e. FADT can be in any XSDT slot).
 * No 32-bit restrictions on placement.
 * 32-bit DSDT and FACS pointers are not supported.
+
+ShellPlatVars
+-------------
+
+This tool is meant to be run from the UEFI Shell,
+and will set the shell environment variables based
+on SMBIOS/ACPI configuration.
+
+For SMBIOS:
+    pvar-have-smbios for SMBIOS < 3.0.
+    pvar-have-smbios64 for SMBIOS >= 3.0.
+    pvar-smbios-bios-vendor for firmware vendor.
+    pvar-smbios-bios-ver for firmware version.
+    pvar-smbios-bios-data for firmware release data.
+    pvar-smbios-manufacturer for system manufacturer.
+    pvar-smbios-product for product name.
+    pvar-smbios-product-ver for product version.
+    pvar-smbios-product-sn for product serial number.
+    pvar-smbios-product-familty for product family.
+
+For ACPI:
+    pvar-have-acpi for ACPI presence.
+    For each table:
+        pvar-acpi-<OemId> = True
+        pvar-acpi-<OemTableId> = True
+        pvar-acpi-<Signature>-rev = <Revision>
+        pvar-acpi-<Signature>-oem-id = <OemId>
+        pvar-acpi-<Signature>-oem-rev = <OemRevision>
+        pvar-acpi-<Signature>-tab-id = <OemTableId>
+
+Usage:
+    fs16:> ShellPlatVars.efi
+    fs16:> set
+        path = .\;FS0:\efi\tools\;FS0:\efi\boot\;FS0:\
+        profiles = ;Driver1;Install;Debug1;network1;
+        uefishellsupport = 3
+        uefishellversion = 2.0
+        uefiversion = 2.40
+        pvar-have-smbios = False
+        pvar-have-smbios64 = False
+        pvar-have-acpi = False
+
+This is meant to be used from a shell script. E.g.:
+
+if x%pvar-have-acpi% eq xFalse then
+    AcpiLoader MyFunkySystem
+endif
+
+if x%pvar-acpi-DSDT-tab-id% eq xPOWER_NV then
+    load fs16:\PowerNV\IODA2HostBridge.efi
+endif
 
 gdb_uefi.py
 -----------
