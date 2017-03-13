@@ -1,4 +1,4 @@
-/* Time-stamp: <2016-06-11 00:50:04 andreiw>
+/* Time-stamp: <2017-03-13 12:47:23 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -132,9 +132,8 @@ LoadTables (
 
     Status = Dir->Read (Dir, &Size, Info);
     if (Status == EFI_SUCCESS) {
-      if (StrLen (Info->FileName) == 8 &&
-          (!StrCmp (&Info->FileName[4], L".aml") ||
-           !StrCmp (&Info->FileName[4], L".AML"))) {
+      if (StrStr (Info->FileName, L".aml") ||
+          StrStr (Info->FileName, L".AML")) {
         Status = LoadTable(VolSubDir, Dir, Info, AcpiPrivate);
       }
     } else {
