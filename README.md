@@ -39,6 +39,9 @@ on the way out during ExitBootServices, meaning you might
 not get the same (correct) data if you dumped the DTB from
 the OS proper.
 
+Note: this tool is not available for IA32, X64, IPF and
+EBC targets.
+
 An optional parameter specifies the path, relative to the
 volume root, where to place the tables. E.g.:
 
@@ -113,7 +116,10 @@ For ACPI:
         pvar-acpi-<Signature>-oem-rev = <OemRevision>
         pvar-acpi-<Signature>-tab-id = <OemTableId>
 
-For FDT:
+    Note: <OemId> and <OemTableId> are sanitized, replacing
+    all occurances of ' ' with '_'.
+
+For FDT (not available on IA32, X64, IPF and EBC):
     pvar-have-fdt for FDT presence.
     For each element (up to 10) in / 'compatible':
         pvar-fdt-compat-0 = <property element 0>
