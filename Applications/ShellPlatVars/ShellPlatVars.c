@@ -22,11 +22,16 @@
 #include <Guid/Acpi.h>
 #include <Guid/SmBios.h>
 
+#ifdef WITH_FDT
+#include <Guid/Fdt.h>
+#include <libfdt.h>
+#endif
+
 static
 VOID
 SetChar8KeyVal(
                IN CHAR16 *Key,
-               IN CHAR8 *Val
+               IN CONST CHAR8 *Val
                )
 {
   UINTN Length;
@@ -306,6 +311,45 @@ SetACPIVars (
   }
 }
 
+#ifdef WITH_FDT
+static VOID
+HandleFdt (
+           VOID
+           )
+{
+  VOID *Fdt;
+  CONST CHAR8 *Node;
+  CONST CHAR8 *Compatible;
+  INT32 Size;
+  UINTN Index = 0;
+  BOOLEAN HaveFdt = FALSE;
+
+  Fdt = GetTable(&gFdtTableGuid);
+  if (Fdt != NULL && fdt_check_header(Fdt) == 0) {
+    HaveFdt = TRUE;
+  }
+
+  ShellSetEnvironmentVariable(L"pvar-have-fdt",
+                              HaveFdt ? L"True" : L"False", TRUE);
+
+
+  Node = fdt_getprop (Fdt, 0, "compatible", &Size);
+  if (Node == NULL) {
+    return;
+  }
+
+  for (Compatible = Node; Compatible < Node + Size &&
+         *Compatible != '\0' &&
+         Index < 10;
+       Compatible += 1 + AsciiStrLen (Compatible), Index++) {
+    CHAR16 Var[sizeof("pvar-fdt-compat-0")];
+
+    UnicodeSPrint(Var, sizeof(Var), L"pvar-fdt-compat-%u", Index);
+    SetChar8KeyVal(Var, Compatible);
+  }
+}
+#endif
+
 EFI_STATUS
 EFIAPI
 UefiMain (
@@ -359,5 +403,9 @@ UefiMain (
   if (Rsdp != NULL) {
     SetACPIVars(Rsdp);
   }
+
+#ifdef WITH_FDT
+  HandleFdt();
+#endif
   return Status;
 }

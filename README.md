@@ -89,7 +89,7 @@ ShellPlatVars
 
 This tool is meant to be run from the UEFI Shell,
 and will set the shell environment variables based
-on SMBIOS/ACPI configuration.
+on SMBIOS/ACPI/FDT configuration.
 
 For SMBIOS:
     pvar-have-smbios for SMBIOS < 3.0.
@@ -113,6 +113,13 @@ For ACPI:
         pvar-acpi-<Signature>-oem-rev = <OemRevision>
         pvar-acpi-<Signature>-tab-id = <OemTableId>
 
+For FDT:
+    pvar-have-fdt for FDT presence.
+    For each element (up to 10) in / 'compatible':
+        pvar-fdt-compat-0 = <property element 0>
+        ...
+        pvar-fdt-compat-N = <property element N>
+
 Usage:
     fs16:> ShellPlatVars.efi
     fs16:> set
@@ -124,8 +131,13 @@ Usage:
         pvar-have-smbios = False
         pvar-have-smbios64 = False
         pvar-have-acpi = False
+        pvar-have-fdt = False
 
 This is meant to be used from a shell script. E.g.:
+
+if x%pvar-have-fdt% eq xTrue then
+    echo I am running on a %pvar-fdt-compat-0%
+endif
 
 if x%pvar-have-acpi% eq xFalse then
     AcpiLoader MyFunkySystem
