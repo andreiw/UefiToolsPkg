@@ -76,6 +76,7 @@
   UefiToolsPkg/Applications/AcpiDump/AcpiDump.inf
   UefiToolsPkg/Applications/AcpiLoader/AcpiLoader.inf
   UefiToolsPkg/Applications/ShellPlatVars/ShellPlatVars.inf
+  UefiToolsPkg/Applications/MemResv/MemResv.inf
 
 [Components.ARM,Components.AARCH64,Components.PPC64]
   UefiToolsPkg/Applications/FdtDump/FdtDump.inf

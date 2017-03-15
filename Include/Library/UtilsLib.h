@@ -30,4 +30,15 @@ GetTable (
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
+CHAR16
+CharToUpper (
+             IN CHAR16 Char
+             );
+
+INTN
+StriCmp (
+         IN CONST CHAR16 *FirstString,
+         IN CONST CHAR16 *SecondString
+         );
+
 #endif /* _UTILS_LIB_H_ */

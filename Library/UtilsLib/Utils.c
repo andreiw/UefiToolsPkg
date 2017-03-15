@@ -103,3 +103,36 @@ GetTable (
 
   return NULL;
 }
+
+CHAR16
+CharToUpper (
+             IN CHAR16 Char
+             )
+{
+  if (Char >= L'a' && Char <= L'z') {
+    return (CHAR16) (Char - (L'a' - L'A'));
+  }
+
+  return Char;
+}
+
+INTN
+StriCmp (
+         IN CONST CHAR16 *FirstString,
+         IN CONST CHAR16 *SecondString
+         )
+{
+  CHAR16 UpperFirstString;
+  CHAR16 UpperSecondString;
+
+  UpperFirstString  = CharToUpper (*FirstString);
+  UpperSecondString = CharToUpper (*SecondString);
+  while ((*FirstString != '\0') && (UpperFirstString == UpperSecondString)) {
+    FirstString++;
+    SecondString++;
+    UpperFirstString  = CharToUpper (*FirstString);
+    UpperSecondString = CharToUpper (*SecondString);
+  }
+
+  return UpperFirstString - UpperSecondString;
+}

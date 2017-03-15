@@ -1,0 +1,97 @@
+/* Time-stamp: <2016-06-11 01:03:15 andreiw>
+ * Copyright (C) 2016 Andrei Evgenievich Warkentin
+ *
+ * This program and the accompanying materials
+ * are licensed and made available under the terms and conditions of the BSD License
+ * which accompanies this distribution.  The full text of the license may be found at
+ * http://opensource.org/licenses/bsd-license.php
+ *
+ * THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+ */
+
+#include <Uefi.h>
+#include <Library/UefiLib.h>
+#include <Library/UefiBootServicesTableLib.h>
+#include <Pi/PiDxeCis.h>
+#include <Library/UtilsLib.h>
+
+#include <Protocol/EfiShellParameters.h>
+
+EFI_STATUS
+EFIAPI
+UefiMain (
+          IN EFI_HANDLE ImageHandle,
+          IN EFI_SYSTEM_TABLE *SystemTable
+          )
+{
+  UINTN RangeStart;
+  UINTN RangeLength;
+  EFI_STATUS Status;
+  EFI_MEMORY_TYPE type;
+  EFI_DXE_SERVICES *DS = NULL;
+  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
+
+  EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **) &DS);
+  if (DS == NULL) {
+    Print(L"This program requires EDK2 DXE Services\n");
+    return EFI_ABORTED;
+  }
+
+  Status = gBS->HandleProtocol (ImageHandle, &gEfiShellParametersProtocolGuid, (VOID **) &ShellParameters);
+  if (Status != EFI_SUCCESS || ShellParameters->Argc < 1) {
+    Print(L"This program requires Microsoft Windows. Just kidding...only the UEFI Shell!\n");
+    return EFI_ABORTED;
+  }
+
+  if (ShellParameters->Argc < 3) {
+    Print(L"Usage: %s range-start range-pages [mmio]\n", ShellParameters->Argv[0]);
+    return EFI_INVALID_PARAMETER;
+  }
+
+  RangeStart = StrHexToUintn(ShellParameters->Argv[1]);
+  RangeLength = StrHexToUintn(ShellParameters->Argv[2]) << EFI_PAGE_SHIFT;
+
+  if (RangeLength == 0 ||
+      (RangeStart + RangeLength) < RangeStart) {
+    Print(L"Invalid range passed\n");
+    return EFI_INVALID_PARAMETER;
+  }
+
+  type = EfiReservedMemoryType;
+  if (ShellParameters->Argc == 4) {
+    if (!StriCmp(ShellParameters->Argv[3], L"mmio")) {
+      type = EfiMemoryMappedIO;
+    } else {
+      Print(L"Warning: Unknown range type, assuming reserved\n");
+    }
+  }
+
+  DS->RemoveMemorySpace(RangeStart, RangeLength);
+
+  //
+  // This seems like the only reasonable way to ensure
+  // that a range is added if it is absent. Adding
+  // EfiGcdMemoryTypeMemoryMappedIo results in
+  // an EFI_NOT_FOUND error for AllocatePages
+  // and nothing is reported in the memory map.
+  //
+  Status = DS->AddMemorySpace(EfiGcdMemoryTypeSystemMemory,
+                              RangeStart,
+                              RangeLength,
+                              EFI_MEMORY_UC | EFI_MEMORY_RUNTIME
+                              );
+  if (Status != EFI_SUCCESS) {
+    Print(L"Warning: couldn't add reserved memory space 0x%lx-0x%lx: %r\n",
+          RangeStart, RangeStart + RangeLength, Status);
+  }
+
+  Status = gBS->AllocatePages(AllocateAddress, type,
+                              EFI_SIZE_TO_PAGES(RangeLength), &RangeStart);
+  if (Status != EFI_SUCCESS) {
+    Print(L"Warning: couldn't allocate reserved memory space 0x%lx-0x%lx: %r\n",
+          RangeStart, RangeStart + RangeLength, Status);
+  }
+
+  return Status;
+}
