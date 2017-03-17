@@ -332,6 +332,11 @@ HandleFdt (
   ShellSetEnvironmentVariable(L"pvar-have-fdt",
                               HaveFdt ? L"True" : L"False", TRUE);
 
+  if (!HaveFdt) {
+    return;
+  }
+
+  Print(L"Parsing Device Tree\n");
 
   Node = fdt_getprop (Fdt, 0, "compatible", &Size);
   if (Node == NULL) {
@@ -385,6 +390,7 @@ UefiMain (
   ShellSetEnvironmentVariable(L"pvar-have-smbios",
                               SmBiosTable == NULL ? L"False" : L"True", TRUE);
   if (SmBiosTable != NULL) {
+    Print(L"Parsing 32-bit SMBIOS\n");
     ParseSmBios((UINT8 *) (UINTN) SmBiosTable->TableAddress,
                 SmBiosTable->TableLength);
   }
@@ -393,6 +399,7 @@ UefiMain (
   ShellSetEnvironmentVariable(L"pvar-have-smbios64",
                               SmBios64Table == NULL ? L"False" : L"True", TRUE);
   if (SmBios64Table != NULL) {
+    Print(L"Parsing 64-bit SMBIOS\n");
     UINTN Length = CalculateSmBios64Length(SmBios64Table);
     ParseSmBios((UINT8 *) (UINTN) SmBios64Table->TableAddress,
                 Length);
@@ -401,6 +408,7 @@ UefiMain (
   ShellSetEnvironmentVariable(L"pvar-have-acpi",
                               Rsdp == NULL ? L"False" : L"True", TRUE);
   if (Rsdp != NULL) {
+    Print(L"Parsing ACPI\n");
     SetACPIVars(Rsdp);
   }
 
