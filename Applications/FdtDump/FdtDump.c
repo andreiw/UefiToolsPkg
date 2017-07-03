@@ -52,11 +52,18 @@ UefiMain (
     return Status;
   }
 
+  Status = RangeIsMapped((UINTN) Fdt, sizeof(struct fdt_header));
+  if (Status != EFI_SUCCESS) {
+    Print(L"Could not validate mapping of FDT header: %r\n", Status);
+    return Status;
+  }
+
   if (fdt_check_header(Fdt) != 0) {
-     Print(L"Warning: FDT header not valid\n");
+    Print(L"Warning: FDT header not valid\n");
   }
 
   Print(L"FDT 0x%x bytes\n", fdt_totalsize(Fdt));
+
   FileSystemSave(ImageProtocol->DeviceHandle, VolSubDir,
                  L"fdt.dtb", Fdt, fdt_totalsize(Fdt));
 

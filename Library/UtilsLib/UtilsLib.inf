@@ -24,10 +24,13 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
 
 [LibraryClasses]
   UefiLib
   BaseMemoryLib
+  SortLib
+  MemoryAllocationLib
   UefiBootServicesTableLib
 
 [Guids]

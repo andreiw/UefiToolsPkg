@@ -29,10 +29,28 @@ TableSave (
            IN EFI_ACPI_DESCRIPTION_HEADER *Table
            )
 {
+  EFI_STATUS Status;
   static unsigned Index;
   CHAR16 Path[3 + 4 + 1 + 3 + 1];
 
+  if (Table == NULL) {
+    Print(L"<skipping empty SDT entry\n");
+    return EFI_NOT_FOUND;
+  }
+
+  Status = RangeIsMapped((UINTN) Table, sizeof(EFI_ACPI_DESCRIPTION_HEADER));
+  if (Status != EFI_SUCCESS) {
+    Print(L"<could not validate mapping of table header: %r>\n", Status);
+    return Status;
+  }
+
   Print(L"Table %.4a @ %p (0x%x bytes)\n", &Table->Signature, Table, Table->Length);
+
+  Status = RangeIsMapped((UINTN) Table, Table->Length);
+  if (Status != EFI_SUCCESS) {
+    Print(L"<could not validate mapping of full table: %r>\n", Status);
+    return Status;
+  }
 
   Index = Index % 100;
   Path[0] = '0' + Index / 10;
@@ -49,7 +67,17 @@ TableSave (
   Path[11] = L'\0';
   Index++;
 
-  return FileSystemSave(Handle, VolSubDir, Path, Table, Table->Length);
+  Status = FileSystemSave(Handle, VolSubDir, Path, Table, Table->Length);
+  if (Status != EFI_SUCCESS) {
+    //
+    // FileSystemSave already does sufficient logging. We only
+    // return failure if there was something wrong with the
+    // table itself.
+    //
+    return EFI_SUCCESS;
+  }
+
+  return EFI_SUCCESS;
 }
 
 EFI_STATUS
@@ -107,15 +135,27 @@ UefiMain (
     Xsdt = NULL;
   }
 
+  Status = EFI_NOT_FOUND;
   Rsdt = (EFI_ACPI_DESCRIPTION_HEADER *) (UINTN) Rsdp->RsdtAddress;
-  if (Xsdt != 0) {
+  if (Xsdt != 0 && (Status = RangeIsMapped((UINTN) Xsdt,
+                                           sizeof(EFI_ACPI_DESCRIPTION_HEADER))) == EFI_SUCCESS) {
     SdtTable = (UINTN) Xsdt;
     SdtTableEnd = SdtTable + Xsdt->Length;
     SdtEntrySize = sizeof(UINT64);
-  } else {
+  } else if (Rsdt != 0 && (Status = RangeIsMapped((UINTN) Rsdt,
+                                                  sizeof(EFI_ACPI_DESCRIPTION_HEADER))) == EFI_SUCCESS) {
     SdtTable = (UINTN) Rsdt;
     SdtTableEnd = SdtTable + Rsdt->Length;
     SdtEntrySize = sizeof(UINT32);
+  } else {
+    Print(L"No valid RSDT/XSDT: %r\n", Status);
+    return Status;
+  }
+
+  Status = RangeIsMapped(SdtTable, SdtTableEnd - SdtTable);
+  if (Status != EFI_SUCCESS) {
+    Print(L"Could not validate RSDT/XSDT mapping: %r\n", Status);
+    return Status;
   }
 
   for (SdtTable += sizeof(EFI_ACPI_DESCRIPTION_HEADER);
@@ -129,14 +169,10 @@ UefiMain (
       TableHeader = (EFI_ACPI_DESCRIPTION_HEADER *) (UINTN) *(UINT64 *) SdtTable;
     }
 
-    if (TableHeader == NULL) {
-      Print(L"<skipping empty SDT entry>\n");
-      continue;
-    }
+    Status = TableSave(ImageProtocol->DeviceHandle, VolSubDir, TableHeader);
 
-    TableSave(ImageProtocol->DeviceHandle, VolSubDir, TableHeader);
-
-    if (TableHeader->Signature == EFI_ACPI_5_1_FIXED_ACPI_DESCRIPTION_TABLE_SIGNATURE) {
+    if (Status == EFI_SUCCESS &&
+        TableHeader->Signature == EFI_ACPI_5_1_FIXED_ACPI_DESCRIPTION_TABLE_SIGNATURE) {
       EFI_ACPI_DESCRIPTION_HEADER *DsdtHeader;
       EFI_ACPI_DESCRIPTION_HEADER *FacsHeader;
 
@@ -155,10 +191,14 @@ UefiMain (
 
       if (DsdtHeader != NULL) {
         TableSave(ImageProtocol->DeviceHandle, VolSubDir, DsdtHeader);
+      } else {
+        Print(L"No DSDT\n");
       }
 
       if (FacsHeader != NULL) {
         TableSave(ImageProtocol->DeviceHandle, VolSubDir, FacsHeader);
+      } else {
+        Print(L"No FACS\n");
       }
     }
   }

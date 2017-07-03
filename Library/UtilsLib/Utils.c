@@ -13,9 +13,107 @@
 #include <Uefi.h>
 #include <Library/UefiLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/SortLib.h>
 #include <Protocol/SimpleFileSystem.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/MemoryAllocationLib.h>
 #include <Guid/FileInfo.h>
+
+STATIC INTN EFIAPI
+MemoryMapSort (
+               IN CONST VOID *Buffer1,
+               IN CONST VOID *Buffer2
+               )
+{
+  CONST EFI_MEMORY_DESCRIPTOR *D1 = Buffer1;
+  CONST EFI_MEMORY_DESCRIPTOR *D2 = Buffer2;
+
+  if (D1->PhysicalStart < D2->PhysicalStart) {
+    return -1;
+  } else if (D1->PhysicalStart == D2->PhysicalStart) {
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+EFI_STATUS
+RangeIsMapped (
+               IN UINTN RangeStart,
+               IN UINTN RangeLength
+               )
+{
+  UINTN Pages;
+  UINTN MapKey;
+  UINTN MapSize;
+  UINTN Index;
+  UINTN RangePages;
+  EFI_STATUS Status;
+  UINTN DescriptorSize;
+  UINT32 DescriptorVersion;
+  EFI_MEMORY_DESCRIPTOR *Map;
+  EFI_MEMORY_DESCRIPTOR *Next;
+
+  if (RangeLength == 0) {
+    Print(L"0x%lx-0x%lx is zero length\n", RangeStart, RangeStart);
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Map = NULL;
+  MapSize = 0;
+  Status = gBS->GetMemoryMap (&MapSize, Map, &MapKey, &DescriptorSize, &DescriptorVersion);
+  if (Status != EFI_BUFFER_TOO_SMALL) {
+    Print(L"gBS->GetMemoryMap failed: %r\n", Status);
+    return EFI_UNSUPPORTED;
+  }
+
+  //
+  // The UEFI specification advises to allocate more memory for
+  // the MemoryMap buffer between successive calls to GetMemoryMap(),
+  // since allocation of the new buffer may potentially increase
+  // memory map size.
+  //
+  Pages = EFI_SIZE_TO_PAGES (MapSize) + 1;
+  Map = AllocatePages (Pages);
+  if (Map == NULL) {
+    Print(L"AllocatePages failed\n");
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  Status = gBS->GetMemoryMap (&MapSize, Map, &MapKey, &DescriptorSize, &DescriptorVersion);
+  if (EFI_ERROR (Status)) {
+    Print(L"gBS->GetMemoryMap failed: %r\n", Status);
+    FreePages (Map, Pages);
+    return Status;
+  }
+
+  PerformQuickSort (Map, MapSize / DescriptorSize, DescriptorSize, MemoryMapSort);
+  RangePages = EFI_SIZE_TO_PAGES (RangeLength);
+
+  for (Next = Map, Index = 0;
+       Index < (MapSize / DescriptorSize) &&
+         RangePages != 0;
+       Index++, Next = (VOID *)((UINTN)Next + DescriptorSize)) {
+    UINTN NextLast = Next->PhysicalStart - 1 + (Next->NumberOfPages * EFI_PAGE_SIZE);
+    if (RangeStart >= Next->PhysicalStart &&
+        RangeStart <= NextLast) {
+      UINTN RemPages = (NextLast - RangeStart + 1) / EFI_PAGE_SIZE;
+      RemPages = MIN(RemPages, RangePages);
+      RangePages -= RemPages;
+      RangeStart += RemPages * EFI_PAGE_SIZE;
+    }
+  }
+
+  FreePages (Map, Pages);
+
+  if (RangePages != 0) {
+    Print(L"0x%lx-0x%lx not in memory map\n", RangeStart,
+          RangeLength - 1 + RangeStart);
+    return EFI_NOT_FOUND;
+  }
+
+  return EFI_SUCCESS;
+}
 
 EFI_STATUS
 FileSystemSave (

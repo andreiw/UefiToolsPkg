@@ -41,4 +41,10 @@ StriCmp (
          IN CONST CHAR16 *SecondString
          );
 
+EFI_STATUS
+RangeIsMapped (
+               IN UINTN RangeStart,
+               IN UINTN RangeLength
+               );
+
 #endif /* _UTILS_LIB_H_ */

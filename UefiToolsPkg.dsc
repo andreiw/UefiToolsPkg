@@ -58,12 +58,12 @@
   BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
+  SortLib|MdeModulePkg/Library/UefiSortLib/UefiSortLib.inf
   UtilsLib|UefiToolsPkg/Library/UtilsLib/UtilsLib.inf
   #
   # Shell lib pulls these dependencies.
   #
   FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
-  SortLib|MdeModulePkg/Library/UefiSortLib/UefiSortLib.inf
   UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
   HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
   ShellLib|ShellPkg/Library/UefiShellLib/UefiShellLib.inf
