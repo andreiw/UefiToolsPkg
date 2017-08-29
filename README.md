@@ -221,6 +221,11 @@ sources only.
 
 See https://github.com/andreiw/tinycc and TCC documentation for more.
 
+Other UEFI Utilities on the Web
+-------------------------------
+- https://github.com/LongSoft/CrScreenshotDxe
+- https://github.com/fpmurphy/UEFI-Utilities-2016
+
 Contact Info
 ------------
 
