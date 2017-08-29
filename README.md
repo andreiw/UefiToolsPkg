@@ -11,6 +11,7 @@ Various useful utilities for UEFI.
                   configuration.
 * MemResv       - Create new memory map entries.
 * gdb_uefi.py   - Load TianoCore symbols in gdb.
+* tinycc        - Port of TinyCC to UEFI (X64/AArch64).
 
 Various useful libraries for UEFI.
 
@@ -24,7 +25,7 @@ Assuming you have EDK2 (http://www.tianocore.org/edk2/)
 all configured and capable of producing builds for your
 target architecture:
 
-    $ git clone https://github.com/andreiw/UefiToolsPkg.git
+    $ git clone --recursive https://github.com/andreiw/UefiToolsPkg.git
     $ build -p UefiToolsPkg/UefiToolsPkg.dsc
 
 To override architecture and/or toolchain:
@@ -206,6 +207,19 @@ when starting gdb.
 
 The -o option should be used if you've debugging EFI, where the PE
 images were converted from MACH-O or ELF binaries.
+
+tinycc
+------
+
+Yes, you can now build UEFI applications **in UEFI itself**. You
+will need the EDK2 headers, or be content with buidling precompiled
+sources only.
+
+    fs16:> tcc hello.c
+    fs16:> hello.efi
+    Hello, World!
+
+See https://github.com/andreiw/tinycc and TCC documentation for more.
 
 Contact Info
 ------------

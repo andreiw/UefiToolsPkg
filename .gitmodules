@@ -1,0 +1,3 @@
+[submodule "Applications/tinycc"]
+	path = Applications/tinycc
+	url = https://github.com/andreiw/tinycc

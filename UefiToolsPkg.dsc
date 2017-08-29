@@ -74,9 +74,16 @@
   UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
   HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
   ShellLib|ShellPkg/Library/UefiShellLib/UefiShellLib.inf
+  #
+  # StdLib deps.
+  #
+  UefiRuntimeLib|MdePkg/Library/UefiRuntimeLib/UefiRuntimeLib.inf
+  UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.inf
 
 [LibraryClasses.ARM,LibraryClasses.AARCH64,LibraryClasses.PPC64]
   FdtLib|EmbeddedPkg/Library/FdtLib/FdtLib.inf
+
+!include StdLib/StdLib.inc
 
 [Components]
   UefiToolsPkg/Applications/GdbSyms/GdbSyms.inf
@@ -84,6 +91,9 @@
   UefiToolsPkg/Applications/AcpiLoader/AcpiLoader.inf
   UefiToolsPkg/Applications/ShellPlatVars/ShellPlatVars.inf
   UefiToolsPkg/Applications/MemResv/MemResv.inf
+
+[Components.X64,Components.AArch64]
+  UefiToolsPkg/Applications/tinycc/TCCInUEFI.inf
 
 [Components.ARM,Components.AARCH64,Components.PPC64]
   UefiToolsPkg/Applications/FdtDump/FdtDump.inf
