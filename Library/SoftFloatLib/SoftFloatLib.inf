@@ -1,0 +1,341 @@
+#
+# Copyright (C) 2017 Andrei Evgenievich Warkentin
+#
+# This program and the accompanying materials
+# are licensed and made available under the terms and conditions of the BSD License
+# which accompanies this distribution.  The full text of the license may be found at
+# http://opensource.org/licenses/bsd-license.php
+#
+# THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+# WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = SoftFloatLib
+  FILE_GUID                      = ddbbacc1-bb25-11df-8e4e-0002a5d5c51b
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = SoftFloatLib|PEIM DXE_DRIVER DXE_RUNTIME_DRIVER UEFI_DRIVER UEFI_APPLICATION
+
+[Sources.AARCH64]
+  AArch64/bindings.c
+
+[Sources]
+  SoftFloat-3d/source/s_eq128.c
+  SoftFloat-3d/source/s_le128.c
+  SoftFloat-3d/source/s_shortShiftLeft128.c
+  SoftFloat-3d/source/s_shortShiftRight128.c
+  SoftFloat-3d/source/s_shortShiftRightJam64.c
+  SoftFloat-3d/source/s_shortShiftRightJam64Extra.c
+  SoftFloat-3d/source/s_shortShiftRightJam128.c
+  SoftFloat-3d/source/s_shortShiftRightJam128Extra.c
+  SoftFloat-3d/source/s_shiftRightJam32.c
+  SoftFloat-3d/source/s_shiftRightJam64.c
+  SoftFloat-3d/source/s_shiftRightJam64Extra.c
+  SoftFloat-3d/source/s_shiftRightJam128.c
+  SoftFloat-3d/source/s_shiftRightJam128Extra.c
+  SoftFloat-3d/source/s_shiftRightJam256M.c
+  SoftFloat-3d/source/s_countLeadingZeros8.c
+  SoftFloat-3d/source/s_countLeadingZeros16.c
+  SoftFloat-3d/source/s_countLeadingZeros32.c
+  SoftFloat-3d/source/s_countLeadingZeros64.c
+  SoftFloat-3d/source/s_add128.c
+  SoftFloat-3d/source/s_add256M.c
+  SoftFloat-3d/source/s_sub128.c
+  SoftFloat-3d/source/s_sub256M.c
+  SoftFloat-3d/source/s_mul64ByShifted32To128.c
+  SoftFloat-3d/source/s_mul64To128.c
+  SoftFloat-3d/source/s_mul128By32.c
+  SoftFloat-3d/source/s_mul128To256M.c
+  SoftFloat-3d/source/s_approxRecip_1Ks.c
+  SoftFloat-3d/source/s_approxRecip32_1.c
+  SoftFloat-3d/source/s_approxRecipSqrt_1Ks.c
+  SoftFloat-3d/source/s_approxRecipSqrt32_1.c
+  SoftFloat-3d/source/8086-SSE/softfloat_raiseFlags.c
+  SoftFloat-3d/source/8086-SSE/s_f16UIToCommonNaN.c
+  SoftFloat-3d/source/8086-SSE/s_commonNaNToF16UI.c
+  SoftFloat-3d/source/8086-SSE/s_propagateNaNF16UI.c
+  SoftFloat-3d/source/8086-SSE/s_f32UIToCommonNaN.c
+  SoftFloat-3d/source/8086-SSE/s_commonNaNToF32UI.c
+  SoftFloat-3d/source/8086-SSE/s_propagateNaNF32UI.c
+  SoftFloat-3d/source/8086-SSE/s_f64UIToCommonNaN.c
+  SoftFloat-3d/source/8086-SSE/s_commonNaNToF64UI.c
+  SoftFloat-3d/source/8086-SSE/s_propagateNaNF64UI.c
+  SoftFloat-3d/source/8086-SSE/extF80M_isSignalingNaN.c
+  SoftFloat-3d/source/8086-SSE/s_extF80UIToCommonNaN.c
+  SoftFloat-3d/source/8086-SSE/s_commonNaNToExtF80UI.c
+  SoftFloat-3d/source/8086-SSE/s_propagateNaNExtF80UI.c
+  SoftFloat-3d/source/8086-SSE/f128M_isSignalingNaN.c
+  SoftFloat-3d/source/8086-SSE/s_f128UIToCommonNaN.c
+  SoftFloat-3d/source/8086-SSE/s_commonNaNToF128UI.c
+  SoftFloat-3d/source/8086-SSE/s_propagateNaNF128UI.c
+  SoftFloat-3d/source/s_roundToUI32.c
+  SoftFloat-3d/source/s_roundToUI64.c
+  SoftFloat-3d/source/s_roundToI32.c
+  SoftFloat-3d/source/s_roundToI64.c
+  SoftFloat-3d/source/s_normSubnormalF16Sig.c
+  SoftFloat-3d/source/s_roundPackToF16.c
+  SoftFloat-3d/source/s_normRoundPackToF16.c
+  SoftFloat-3d/source/s_addMagsF16.c
+  SoftFloat-3d/source/s_subMagsF16.c
+  SoftFloat-3d/source/s_mulAddF16.c
+  SoftFloat-3d/source/s_normSubnormalF32Sig.c
+  SoftFloat-3d/source/s_roundPackToF32.c
+  SoftFloat-3d/source/s_normRoundPackToF32.c
+  SoftFloat-3d/source/s_addMagsF32.c
+  SoftFloat-3d/source/s_subMagsF32.c
+  SoftFloat-3d/source/s_mulAddF32.c
+  SoftFloat-3d/source/s_normSubnormalF64Sig.c
+  SoftFloat-3d/source/s_roundPackToF64.c
+  SoftFloat-3d/source/s_normRoundPackToF64.c
+  SoftFloat-3d/source/s_addMagsF64.c
+  SoftFloat-3d/source/s_subMagsF64.c
+  SoftFloat-3d/source/s_mulAddF64.c
+  SoftFloat-3d/source/s_normSubnormalExtF80Sig.c
+  SoftFloat-3d/source/s_roundPackToExtF80.c
+  SoftFloat-3d/source/s_normRoundPackToExtF80.c
+  SoftFloat-3d/source/s_addMagsExtF80.c
+  SoftFloat-3d/source/s_subMagsExtF80.c
+  SoftFloat-3d/source/s_normSubnormalF128Sig.c
+  SoftFloat-3d/source/s_roundPackToF128.c
+  SoftFloat-3d/source/s_normRoundPackToF128.c
+  SoftFloat-3d/source/s_addMagsF128.c
+  SoftFloat-3d/source/s_subMagsF128.c
+  SoftFloat-3d/source/s_mulAddF128.c
+  SoftFloat-3d/source/softfloat_state.c
+  SoftFloat-3d/source/ui32_to_f16.c
+  SoftFloat-3d/source/ui32_to_f32.c
+  SoftFloat-3d/source/ui32_to_f64.c
+  SoftFloat-3d/source/ui32_to_extF80.c
+  SoftFloat-3d/source/ui32_to_extF80M.c
+  SoftFloat-3d/source/ui32_to_f128.c
+  SoftFloat-3d/source/ui32_to_f128M.c
+  SoftFloat-3d/source/ui64_to_f16.c
+  SoftFloat-3d/source/ui64_to_f32.c
+  SoftFloat-3d/source/ui64_to_f64.c
+  SoftFloat-3d/source/ui64_to_extF80.c
+  SoftFloat-3d/source/ui64_to_extF80M.c
+  SoftFloat-3d/source/ui64_to_f128.c
+  SoftFloat-3d/source/ui64_to_f128M.c
+  SoftFloat-3d/source/i32_to_f16.c
+  SoftFloat-3d/source/i32_to_f32.c
+  SoftFloat-3d/source/i32_to_f64.c
+  SoftFloat-3d/source/i32_to_extF80.c
+  SoftFloat-3d/source/i32_to_extF80M.c
+  SoftFloat-3d/source/i32_to_f128.c
+  SoftFloat-3d/source/i32_to_f128M.c
+  SoftFloat-3d/source/i64_to_f16.c
+  SoftFloat-3d/source/i64_to_f32.c
+  SoftFloat-3d/source/i64_to_f64.c
+  SoftFloat-3d/source/i64_to_extF80.c
+  SoftFloat-3d/source/i64_to_extF80M.c
+  SoftFloat-3d/source/i64_to_f128.c
+  SoftFloat-3d/source/i64_to_f128M.c
+  SoftFloat-3d/source/f16_to_ui32.c
+  SoftFloat-3d/source/f16_to_ui64.c
+  SoftFloat-3d/source/f16_to_i32.c
+  SoftFloat-3d/source/f16_to_i64.c
+  SoftFloat-3d/source/f16_to_ui32_r_minMag.c
+  SoftFloat-3d/source/f16_to_ui64_r_minMag.c
+  SoftFloat-3d/source/f16_to_i32_r_minMag.c
+  SoftFloat-3d/source/f16_to_i64_r_minMag.c
+  SoftFloat-3d/source/f16_to_f32.c
+  SoftFloat-3d/source/f16_to_f64.c
+  SoftFloat-3d/source/f16_to_extF80.c
+  SoftFloat-3d/source/f16_to_extF80M.c
+  SoftFloat-3d/source/f16_to_f128.c
+  SoftFloat-3d/source/f16_to_f128M.c
+  SoftFloat-3d/source/f16_roundToInt.c
+  SoftFloat-3d/source/f16_add.c
+  SoftFloat-3d/source/f16_sub.c
+  SoftFloat-3d/source/f16_mul.c
+  SoftFloat-3d/source/f16_mulAdd.c
+  SoftFloat-3d/source/f16_div.c
+  SoftFloat-3d/source/f16_rem.c
+  SoftFloat-3d/source/f16_sqrt.c
+  SoftFloat-3d/source/f16_eq.c
+  SoftFloat-3d/source/f16_le.c
+  SoftFloat-3d/source/f16_lt.c
+  SoftFloat-3d/source/f16_eq_signaling.c
+  SoftFloat-3d/source/f16_le_quiet.c
+  SoftFloat-3d/source/f16_lt_quiet.c
+  SoftFloat-3d/source/f16_isSignalingNaN.c
+  SoftFloat-3d/source/f32_to_ui32.c
+  SoftFloat-3d/source/f32_to_ui64.c
+  SoftFloat-3d/source/f32_to_i32.c
+  SoftFloat-3d/source/f32_to_i64.c
+  SoftFloat-3d/source/f32_to_ui32_r_minMag.c
+  SoftFloat-3d/source/f32_to_ui64_r_minMag.c
+  SoftFloat-3d/source/f32_to_i32_r_minMag.c
+  SoftFloat-3d/source/f32_to_i64_r_minMag.c
+  SoftFloat-3d/source/f32_to_f16.c
+  SoftFloat-3d/source/f32_to_f64.c
+  SoftFloat-3d/source/f32_to_extF80.c
+  SoftFloat-3d/source/f32_to_extF80M.c
+  SoftFloat-3d/source/f32_to_f128.c
+  SoftFloat-3d/source/f32_to_f128M.c
+  SoftFloat-3d/source/f32_roundToInt.c
+  SoftFloat-3d/source/f32_add.c
+  SoftFloat-3d/source/f32_sub.c
+  SoftFloat-3d/source/f32_mul.c
+  SoftFloat-3d/source/f32_mulAdd.c
+  SoftFloat-3d/source/f32_div.c
+  SoftFloat-3d/source/f32_rem.c
+  SoftFloat-3d/source/f32_sqrt.c
+  SoftFloat-3d/source/f32_eq.c
+  SoftFloat-3d/source/f32_le.c
+  SoftFloat-3d/source/f32_lt.c
+  SoftFloat-3d/source/f32_eq_signaling.c
+  SoftFloat-3d/source/f32_le_quiet.c
+  SoftFloat-3d/source/f32_lt_quiet.c
+  SoftFloat-3d/source/f32_isSignalingNaN.c
+  SoftFloat-3d/source/f64_to_ui32.c
+  SoftFloat-3d/source/f64_to_ui64.c
+  SoftFloat-3d/source/f64_to_i32.c
+  SoftFloat-3d/source/f64_to_i64.c
+  SoftFloat-3d/source/f64_to_ui32_r_minMag.c
+  SoftFloat-3d/source/f64_to_ui64_r_minMag.c
+  SoftFloat-3d/source/f64_to_i32_r_minMag.c
+  SoftFloat-3d/source/f64_to_i64_r_minMag.c
+  SoftFloat-3d/source/f64_to_f16.c
+  SoftFloat-3d/source/f64_to_f32.c
+  SoftFloat-3d/source/f64_to_extF80.c
+  SoftFloat-3d/source/f64_to_extF80M.c
+  SoftFloat-3d/source/f64_to_f128.c
+  SoftFloat-3d/source/f64_to_f128M.c
+  SoftFloat-3d/source/f64_roundToInt.c
+  SoftFloat-3d/source/f64_add.c
+  SoftFloat-3d/source/f64_sub.c
+  SoftFloat-3d/source/f64_mul.c
+  SoftFloat-3d/source/f64_mulAdd.c
+  SoftFloat-3d/source/f64_div.c
+  SoftFloat-3d/source/f64_rem.c
+  SoftFloat-3d/source/f64_sqrt.c
+  SoftFloat-3d/source/f64_eq.c
+  SoftFloat-3d/source/f64_le.c
+  SoftFloat-3d/source/f64_lt.c
+  SoftFloat-3d/source/f64_eq_signaling.c
+  SoftFloat-3d/source/f64_le_quiet.c
+  SoftFloat-3d/source/f64_lt_quiet.c
+  SoftFloat-3d/source/f64_isSignalingNaN.c
+  SoftFloat-3d/source/extF80_to_ui32.c
+  SoftFloat-3d/source/extF80_to_ui64.c
+  SoftFloat-3d/source/extF80_to_i32.c
+  SoftFloat-3d/source/extF80_to_i64.c
+  SoftFloat-3d/source/extF80_to_ui32_r_minMag.c
+  SoftFloat-3d/source/extF80_to_ui64_r_minMag.c
+  SoftFloat-3d/source/extF80_to_i32_r_minMag.c
+  SoftFloat-3d/source/extF80_to_i64_r_minMag.c
+  SoftFloat-3d/source/extF80_to_f16.c
+  SoftFloat-3d/source/extF80_to_f32.c
+  SoftFloat-3d/source/extF80_to_f64.c
+  SoftFloat-3d/source/extF80_to_f128.c
+  SoftFloat-3d/source/extF80_roundToInt.c
+  SoftFloat-3d/source/extF80_add.c
+  SoftFloat-3d/source/extF80_sub.c
+  SoftFloat-3d/source/extF80_mul.c
+  SoftFloat-3d/source/extF80_div.c
+  SoftFloat-3d/source/extF80_rem.c
+  SoftFloat-3d/source/extF80_sqrt.c
+  SoftFloat-3d/source/extF80_eq.c
+  SoftFloat-3d/source/extF80_le.c
+  SoftFloat-3d/source/extF80_lt.c
+  SoftFloat-3d/source/extF80_eq_signaling.c
+  SoftFloat-3d/source/extF80_le_quiet.c
+  SoftFloat-3d/source/extF80_lt_quiet.c
+  SoftFloat-3d/source/extF80_isSignalingNaN.c
+  SoftFloat-3d/source/extF80M_to_ui32.c
+  SoftFloat-3d/source/extF80M_to_ui64.c
+  SoftFloat-3d/source/extF80M_to_i32.c
+  SoftFloat-3d/source/extF80M_to_i64.c
+  SoftFloat-3d/source/extF80M_to_ui32_r_minMag.c
+  SoftFloat-3d/source/extF80M_to_ui64_r_minMag.c
+  SoftFloat-3d/source/extF80M_to_i32_r_minMag.c
+  SoftFloat-3d/source/extF80M_to_i64_r_minMag.c
+  SoftFloat-3d/source/extF80M_to_f16.c
+  SoftFloat-3d/source/extF80M_to_f32.c
+  SoftFloat-3d/source/extF80M_to_f64.c
+  SoftFloat-3d/source/extF80M_to_f128M.c
+  SoftFloat-3d/source/extF80M_roundToInt.c
+  SoftFloat-3d/source/extF80M_add.c
+  SoftFloat-3d/source/extF80M_sub.c
+  SoftFloat-3d/source/extF80M_mul.c
+  SoftFloat-3d/source/extF80M_div.c
+  SoftFloat-3d/source/extF80M_rem.c
+  SoftFloat-3d/source/extF80M_sqrt.c
+  SoftFloat-3d/source/extF80M_eq.c
+  SoftFloat-3d/source/extF80M_le.c
+  SoftFloat-3d/source/extF80M_lt.c
+  SoftFloat-3d/source/extF80M_eq_signaling.c
+  SoftFloat-3d/source/extF80M_le_quiet.c
+  SoftFloat-3d/source/extF80M_lt_quiet.c
+  SoftFloat-3d/source/f128_to_ui32.c
+  SoftFloat-3d/source/f128_to_ui64.c
+  SoftFloat-3d/source/f128_to_i32.c
+  SoftFloat-3d/source/f128_to_i64.c
+  SoftFloat-3d/source/f128_to_ui32_r_minMag.c
+  SoftFloat-3d/source/f128_to_ui64_r_minMag.c
+  SoftFloat-3d/source/f128_to_i32_r_minMag.c
+  SoftFloat-3d/source/f128_to_i64_r_minMag.c
+  SoftFloat-3d/source/f128_to_f16.c
+  SoftFloat-3d/source/f128_to_f32.c
+  SoftFloat-3d/source/f128_to_extF80.c
+  SoftFloat-3d/source/f128_to_f64.c
+  SoftFloat-3d/source/f128_roundToInt.c
+  SoftFloat-3d/source/f128_add.c
+  SoftFloat-3d/source/f128_sub.c
+  SoftFloat-3d/source/f128_mul.c
+  SoftFloat-3d/source/f128_mulAdd.c
+  SoftFloat-3d/source/f128_div.c
+  SoftFloat-3d/source/f128_rem.c
+  SoftFloat-3d/source/f128_sqrt.c
+  SoftFloat-3d/source/f128_eq.c
+  SoftFloat-3d/source/f128_le.c
+  SoftFloat-3d/source/f128_lt.c
+  SoftFloat-3d/source/f128_eq_signaling.c
+  SoftFloat-3d/source/f128_le_quiet.c
+  SoftFloat-3d/source/f128_lt_quiet.c
+  SoftFloat-3d/source/f128_isSignalingNaN.c
+  SoftFloat-3d/source/f128M_to_ui32.c
+  SoftFloat-3d/source/f128M_to_ui64.c
+  SoftFloat-3d/source/f128M_to_i32.c
+  SoftFloat-3d/source/f128M_to_i64.c
+  SoftFloat-3d/source/f128M_to_ui32_r_minMag.c
+  SoftFloat-3d/source/f128M_to_ui64_r_minMag.c
+  SoftFloat-3d/source/f128M_to_i32_r_minMag.c
+  SoftFloat-3d/source/f128M_to_i64_r_minMag.c
+  SoftFloat-3d/source/f128M_to_f16.c
+  SoftFloat-3d/source/f128M_to_f32.c
+  SoftFloat-3d/source/f128M_to_extF80M.c
+  SoftFloat-3d/source/f128M_to_f64.c
+  SoftFloat-3d/source/f128M_roundToInt.c
+  SoftFloat-3d/source/f128M_add.c
+  SoftFloat-3d/source/f128M_sub.c
+  SoftFloat-3d/source/f128M_mul.c
+  SoftFloat-3d/source/f128M_mulAdd.c
+  SoftFloat-3d/source/f128M_div.c
+  SoftFloat-3d/source/f128M_rem.c
+  SoftFloat-3d/source/f128M_sqrt.c
+  SoftFloat-3d/source/f128M_eq.c
+  SoftFloat-3d/source/f128M_le.c
+  SoftFloat-3d/source/f128M_lt.c
+  SoftFloat-3d/source/f128M_eq_signaling.c
+  SoftFloat-3d/source/f128M_le_quiet.c
+  SoftFloat-3d/source/f128M_lt_quiet.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UefiToolsPkg/Library/SoftFloatLib/SoftFloatLib.dec
+  StdLib/StdLib.dec
+
+[LibraryClasses]
+  UefiLib
+  
+[Guids]
+
+[Protocols]
+
+[BuildOptions]
+   GCC:*_*_*_CC_FLAGS = -DSOFTFLOAT_FAST_INT64 -DSOFTFLOAT_ROUND_ODD -DINLINE_LEVEL=5 -DSOFTFLOAT_FAST_DIV32TO16 -DSOFTFLOAT_FAST_DIV64TO32 -Wno-error=parentheses

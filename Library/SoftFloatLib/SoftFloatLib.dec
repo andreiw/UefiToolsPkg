@@ -1,0 +1,23 @@
+#
+# Copyright (C) 2017 Andrei Evgenievich Warkentin
+#
+# This program and the accompanying materials
+# are licensed and made available under the terms and conditions of the BSD License
+# which accompanies this distribution.  The full text of the license may be found at
+# http://opensource.org/licenses/bsd-license.php
+#
+# THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+# WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = SoftFloatLibPkg
+  PACKAGE_GUID                   = B3E3D4D5-D42B-4497-A175-464F483D127F
+  PACKAGE_VERSION                = 0.01
+
+[Includes]
+  .
+  SoftFloat-3d/build/Linux-x86_64-GCC/
+  SoftFloat-3d/source/include/
+  SoftFloat-3d/source/8086-SSE/

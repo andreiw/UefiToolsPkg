@@ -42,6 +42,14 @@
   gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|$(DEBUG_PRINT_ERROR_LEVEL)
 
 [LibraryClasses]
+  #
+  # These are the libraries provided.
+  #
+  UtilsLib|UefiToolsPkg/Library/UtilsLib/UtilsLib.inf
+  SoftFloatLib|UefiToolsPkg/Library/SoftFloatLib/SoftFloatLib.inf
+  #
+  # Everything else below is a dependency.
+  #
   UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
   UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
   PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
@@ -59,7 +67,6 @@
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
   SortLib|MdeModulePkg/Library/UefiSortLib/UefiSortLib.inf
-  UtilsLib|UefiToolsPkg/Library/UtilsLib/UtilsLib.inf
   #
   # Shell lib pulls these dependencies.
   #

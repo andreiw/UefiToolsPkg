@@ -12,6 +12,11 @@ Various useful utilities for UEFI.
 * MemResv       - Create new memory map entries.
 * gdb_uefi.py   - Load TianoCore symbols in gdb.
 
+Various useful libraries for UEFI.
+
+* UtilsLib      - Consumed by the above utilities.
+* SoftFloatLib  - Port of SoftFloat-3d to UEFI.
+
 Building
 --------
 
