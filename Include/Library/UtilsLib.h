@@ -14,6 +14,24 @@
 
 #include <Uefi.h>
 
+typedef struct GET_OPT_CONTEXT {
+  CHAR16 Opt;
+  CHAR16 *OptArg;
+  UINTN OptIndex;
+} GET_OPT_CONTEXT;
+
+#define INIT_GET_OPT_CONTEXT(ContextPointer) do {\
+    (ContextPointer)->Opt = L'\0';               \
+    (ContextPointer)->OptArg = NULL;             \
+    (ContextPointer)->OptIndex = 1;              \
+  } while (0)
+
+EFI_STATUS
+GetOpt(IN UINTN Argc,
+       IN CHAR16 **Argv,
+       IN CHAR16 *OptionsWithArgs,
+       IN OUT GET_OPT_CONTEXT *Context);
+
 EFI_STATUS
 FileSystemSave (
                 IN EFI_HANDLE Handle,
@@ -44,7 +62,8 @@ StriCmp (
 EFI_STATUS
 RangeIsMapped (
                IN UINTN RangeStart,
-               IN UINTN RangeLength
+               IN UINTN RangeLength,
+               IN BOOLEAN WarnIfNotFound
                );
 
 #endif /* _UTILS_LIB_H_ */

@@ -38,7 +38,7 @@ TableSave (
     return EFI_NOT_FOUND;
   }
 
-  Status = RangeIsMapped((UINTN) Table, sizeof(EFI_ACPI_DESCRIPTION_HEADER));
+  Status = RangeIsMapped((UINTN) Table, sizeof(EFI_ACPI_DESCRIPTION_HEADER), TRUE);
   if (Status != EFI_SUCCESS) {
     Print(L"<could not validate mapping of table header: %r>\n", Status);
     return Status;
@@ -46,7 +46,7 @@ TableSave (
 
   Print(L"Table %.4a @ %p (0x%x bytes)\n", &Table->Signature, Table, Table->Length);
 
-  Status = RangeIsMapped((UINTN) Table, Table->Length);
+  Status = RangeIsMapped((UINTN) Table, Table->Length, TRUE);
   if (Status != EFI_SUCCESS) {
     Print(L"<could not validate mapping of full table: %r>\n", Status);
     return Status;
@@ -138,12 +138,14 @@ UefiMain (
   Status = EFI_NOT_FOUND;
   Rsdt = (EFI_ACPI_DESCRIPTION_HEADER *) (UINTN) Rsdp->RsdtAddress;
   if (Xsdt != 0 && (Status = RangeIsMapped((UINTN) Xsdt,
-                                           sizeof(EFI_ACPI_DESCRIPTION_HEADER))) == EFI_SUCCESS) {
+                                           sizeof(EFI_ACPI_DESCRIPTION_HEADER),
+                                           TRUE)) == EFI_SUCCESS) {
     SdtTable = (UINTN) Xsdt;
     SdtTableEnd = SdtTable + Xsdt->Length;
     SdtEntrySize = sizeof(UINT64);
   } else if (Rsdt != 0 && (Status = RangeIsMapped((UINTN) Rsdt,
-                                                  sizeof(EFI_ACPI_DESCRIPTION_HEADER))) == EFI_SUCCESS) {
+                                                  sizeof(EFI_ACPI_DESCRIPTION_HEADER),
+                                                  TRUE)) == EFI_SUCCESS) {
     SdtTable = (UINTN) Rsdt;
     SdtTableEnd = SdtTable + Rsdt->Length;
     SdtEntrySize = sizeof(UINT32);
@@ -152,7 +154,7 @@ UefiMain (
     return Status;
   }
 
-  Status = RangeIsMapped(SdtTable, SdtTableEnd - SdtTable);
+  Status = RangeIsMapped(SdtTable, SdtTableEnd - SdtTable, TRUE);
   if (Status != EFI_SUCCESS) {
     Print(L"Could not validate RSDT/XSDT mapping: %r\n", Status);
     return Status;

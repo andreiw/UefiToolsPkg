@@ -32,13 +32,13 @@ UefiMain (
   EFI_DXE_SERVICES *DS = NULL;
   EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
 
-  EfiGetSystemConfigurationTable (&gEfiDxeServicesTableGuid, (VOID **) &DS);
+  EfiGetSystemConfigurationTable(&gEfiDxeServicesTableGuid, (VOID **) &DS);
   if (DS == NULL) {
     Print(L"This program requires EDK2 DXE Services\n");
     return EFI_ABORTED;
   }
 
-  Status = gBS->HandleProtocol (ImageHandle, &gEfiShellParametersProtocolGuid, (VOID **) &ShellParameters);
+  Status = gBS->HandleProtocol(ImageHandle, &gEfiShellParametersProtocolGuid, (VOID **) &ShellParameters);
   if (Status != EFI_SUCCESS || ShellParameters->Argc < 1) {
     Print(L"This program requires Microsoft Windows. Just kidding...only the UEFI Shell!\n");
     return EFI_ABORTED;

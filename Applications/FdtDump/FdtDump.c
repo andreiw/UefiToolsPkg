@@ -52,7 +52,7 @@ UefiMain (
     return Status;
   }
 
-  Status = RangeIsMapped((UINTN) Fdt, sizeof(struct fdt_header));
+  Status = RangeIsMapped((UINTN) Fdt, sizeof(struct fdt_header), TRUE);
   if (Status != EFI_SUCCESS) {
     Print(L"Could not validate mapping of FDT header: %r\n", Status);
     return Status;

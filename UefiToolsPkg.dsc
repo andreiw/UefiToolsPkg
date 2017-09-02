@@ -91,6 +91,7 @@
   UefiToolsPkg/Applications/AcpiLoader/AcpiLoader.inf
   UefiToolsPkg/Applications/ShellPlatVars/ShellPlatVars.inf
   UefiToolsPkg/Applications/MemResv/MemResv.inf
+  UefiToolsPkg/Applications/RangeIsMapped/RangeIsMapped.inf
 
 [Components.X64,Components.AArch64]
   UefiToolsPkg/Applications/tinycc/TCCInUEFI.inf

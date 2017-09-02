@@ -14,10 +14,74 @@
 #include <Library/UefiLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/SortLib.h>
+#include <Library/UtilsLib.h>
 #include <Protocol/SimpleFileSystem.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Guid/FileInfo.h>
+
+EFI_STATUS
+GetOpt(IN UINTN Argc,
+       IN CHAR16 **Argv,
+       IN CHAR16 *OptionsWithArgs,
+       IN OUT GET_OPT_CONTEXT *Context)
+{
+  UINTN Index;
+  UINTN SkipCount;
+
+  if (Context->OptIndex >= Argc ||
+      *Argv[Context->OptIndex] != L'-') {
+    return EFI_END_OF_MEDIA;
+  }
+
+  if (*(Argv[Context->OptIndex] + 1) == L'\0') {
+    /*
+     * A lone dash is used to signify end of options list.
+     *
+     * Like above, but we want to skip the dash.
+     */
+    Context->OptIndex++;
+    return EFI_END_OF_MEDIA;
+  }
+
+  SkipCount = 1;
+  Context->Opt = *(Argv[Context->OptIndex] + 1);
+
+  if (OptionsWithArgs != NULL) {
+    UINTN ArgsLen = StrLen(OptionsWithArgs);
+
+    for (Index = 0; Index < ArgsLen; Index++) {
+      if (OptionsWithArgs[Index] == Context->Opt) {
+        if (*(Argv[Context->OptIndex] + 2) != L'\0') {
+          /*
+           * Argument to the option may immediately follow
+           * the option (not separated by space).
+           */
+          Context->OptArg = Argv[Context->OptIndex] + 2;
+        } else if (Context->OptIndex + 1 < Argc &&
+                   *(Argv[Context->OptIndex + 1]) != L'-') {
+          /*
+           * If argument is separated from option by space, it
+           * cannot look like an option (i.e. begin with a dash).
+           */
+          Context->OptArg = Argv[Context->OptIndex + 1];
+          SkipCount++;
+        } else {
+          /*
+           * No argument. Maybe it was optional? Up to the caller
+           * to decide.
+           */
+          Context->OptArg = NULL;
+        }
+
+        break;
+      }
+    }
+  }
+
+  Context->OptIndex += SkipCount;
+  return EFI_SUCCESS;
+}
 
 STATIC INTN EFIAPI
 MemoryMapSort (
@@ -40,13 +104,15 @@ MemoryMapSort (
 EFI_STATUS
 RangeIsMapped (
                IN UINTN RangeStart,
-               IN UINTN RangeLength
+               IN UINTN RangeLength,
+               IN BOOLEAN WarnIfNotFound
                )
 {
   UINTN Pages;
   UINTN MapKey;
   UINTN MapSize;
   UINTN Index;
+  UINTN RangeNext;
   UINTN RangePages;
   EFI_STATUS Status;
   UINTN DescriptorSize;
@@ -61,7 +127,8 @@ RangeIsMapped (
 
   Map = NULL;
   MapSize = 0;
-  Status = gBS->GetMemoryMap (&MapSize, Map, &MapKey, &DescriptorSize, &DescriptorVersion);
+  Status = gBS->GetMemoryMap(&MapSize, Map, &MapKey,
+                             &DescriptorSize, &DescriptorVersion);
   if (Status != EFI_BUFFER_TOO_SMALL) {
     Print(L"gBS->GetMemoryMap failed: %r\n", Status);
     return EFI_UNSUPPORTED;
@@ -73,42 +140,51 @@ RangeIsMapped (
   // since allocation of the new buffer may potentially increase
   // memory map size.
   //
-  Pages = EFI_SIZE_TO_PAGES (MapSize) + 1;
-  Map = AllocatePages (Pages);
+  Pages = EFI_SIZE_TO_PAGES(MapSize) + 1;
+  Map = AllocatePages(Pages);
   if (Map == NULL) {
     Print(L"AllocatePages failed\n");
     return EFI_OUT_OF_RESOURCES;
   }
 
-  Status = gBS->GetMemoryMap (&MapSize, Map, &MapKey, &DescriptorSize, &DescriptorVersion);
-  if (EFI_ERROR (Status)) {
+  Status = gBS->GetMemoryMap(&MapSize, Map, &MapKey,
+                             &DescriptorSize, &DescriptorVersion);
+  if (EFI_ERROR(Status)) {
     Print(L"gBS->GetMemoryMap failed: %r\n", Status);
-    FreePages (Map, Pages);
+    FreePages(Map, Pages);
     return Status;
   }
 
-  PerformQuickSort (Map, MapSize / DescriptorSize, DescriptorSize, MemoryMapSort);
-  RangePages = EFI_SIZE_TO_PAGES (RangeLength);
+  PerformQuickSort(Map, MapSize / DescriptorSize, DescriptorSize, MemoryMapSort);
+  RangePages = EFI_SIZE_TO_PAGES(RangeLength);
 
-  for (Next = Map, Index = 0;
+  for (RangeNext = RangeStart, Next = Map, Index = 0;
        Index < (MapSize / DescriptorSize) &&
          RangePages != 0;
        Index++, Next = (VOID *)((UINTN)Next + DescriptorSize)) {
     UINTN NextLast = Next->PhysicalStart - 1 + (Next->NumberOfPages * EFI_PAGE_SIZE);
-    if (RangeStart >= Next->PhysicalStart &&
-        RangeStart <= NextLast) {
-      UINTN RemPages = (NextLast - RangeStart + 1) / EFI_PAGE_SIZE;
+
+    if (RangeNext < Next->PhysicalStart) {
+      break;
+    }
+
+    if (RangeNext >= Next->PhysicalStart &&
+        RangeNext <= NextLast) {
+      UINTN RemPages = (NextLast - RangeNext + 1) / EFI_PAGE_SIZE;
       RemPages = MIN(RemPages, RangePages);
       RangePages -= RemPages;
-      RangeStart += RemPages * EFI_PAGE_SIZE;
+      RangeNext += RemPages * EFI_PAGE_SIZE;
     }
   }
 
-  FreePages (Map, Pages);
+  FreePages(Map, Pages);
 
   if (RangePages != 0) {
-    Print(L"0x%lx-0x%lx not in memory map\n", RangeStart,
-          RangeLength - 1 + RangeStart);
+    if (WarnIfNotFound) {
+      Print(L"0x%lx-0x%lx not in memory map (starting at 0x%lx)\n", RangeStart,
+            RangeLength - 1 + RangeStart, RangeNext);
+    }
+
     return EFI_NOT_FOUND;
   }
 
@@ -131,19 +207,20 @@ FileSystemSave (
   EFI_FILE_PROTOCOL *File;
   UINTN Size;
 
-  Status = gBS->HandleProtocol (Handle, &gEfiSimpleFileSystemProtocolGuid, (void **) &FsProtocol);
+  Status = gBS->HandleProtocol(Handle, &gEfiSimpleFileSystemProtocolGuid,
+                               (void **) &FsProtocol);
   if (Status != EFI_SUCCESS) {
     Print(L"Could not open filesystem: %r\n", Status);
     return Status;
   }
 
-  Status = FsProtocol->OpenVolume (FsProtocol, &Fs);
+  Status = FsProtocol->OpenVolume(FsProtocol, &Fs);
   if (Status != EFI_SUCCESS) {
     Print(L"Could not open volume: %r\n", Status);
     return Status;
   }
 
-  Status = Fs->Open (Fs, &Dir, VolSubDir, EFI_FILE_MODE_CREATE |
+  Status = Fs->Open(Fs, &Dir, VolSubDir, EFI_FILE_MODE_CREATE |
                      EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE,
                      EFI_FILE_DIRECTORY);
   if (Status != EFI_SUCCESS) {
@@ -151,12 +228,13 @@ FileSystemSave (
     return Status;
   }
 
-  if (Dir->Open (Dir, &File, Path, EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0) == EFI_SUCCESS) {
+  if (Dir->Open(Dir, &File, Path, EFI_FILE_MODE_READ |
+                EFI_FILE_MODE_WRITE, 0) == EFI_SUCCESS) {
     /*
      * Delete existing file.
      */
     Print(L"Overwriting existing'\\%s\\%s': %r\n", VolSubDir, Path);
-    Status = Dir->Delete (File);
+    Status = Dir->Delete(File);
     File = NULL;
     if (Status != EFI_SUCCESS) {
       Print(L"Could not delete existing '\\%s\\%s': %r\n", VolSubDir, Path, Status);
@@ -164,7 +242,7 @@ FileSystemSave (
     }
   }
 
-  Status = Dir->Open (Dir, &File, Path, EFI_FILE_MODE_CREATE | EFI_FILE_MODE_READ |
+  Status = Dir->Open(Dir, &File, Path, EFI_FILE_MODE_CREATE | EFI_FILE_MODE_READ |
                       EFI_FILE_MODE_WRITE, 0);
   if (Status != EFI_SUCCESS) {
     Print(L"Could not open '\\%s\\%s': %r\n", VolSubDir, Path, Status);
@@ -173,16 +251,16 @@ FileSystemSave (
   }
 
   Size = TableSize;
-  Status = File->Write (File, &Size, (void *) Table);
+  Status = File->Write(File, &Size, (void *) Table);
   if (Status != EFI_SUCCESS || Size != TableSize) {
     Print(L"Writing '\\%s\\%s' failed: %r\n", VolSubDir, Path, Status);
   } else {
-    File->Flush (File);
+    File->Flush(File);
   }
 
-  Dir->Close (File);
+  Dir->Close(File);
  closeDir:
-  Fs->Close (Dir);
+  Fs->Close(Dir);
   return Status;
 }
 
@@ -194,7 +272,7 @@ GetTable (
   UINTN i;
 
   for (i = 0; i < gST->NumberOfTableEntries; i++) {
-    if (CompareGuid (&gST->ConfigurationTable[i].VendorGuid, Guid)) {
+    if (CompareGuid(&gST->ConfigurationTable[i].VendorGuid, Guid)) {
       return gST->ConfigurationTable[i].VendorTable;
     }
   }
@@ -223,13 +301,13 @@ StriCmp (
   CHAR16 UpperFirstString;
   CHAR16 UpperSecondString;
 
-  UpperFirstString  = CharToUpper (*FirstString);
-  UpperSecondString = CharToUpper (*SecondString);
+  UpperFirstString  = CharToUpper(*FirstString);
+  UpperSecondString = CharToUpper(*SecondString);
   while ((*FirstString != '\0') && (UpperFirstString == UpperSecondString)) {
     FirstString++;
     SecondString++;
-    UpperFirstString  = CharToUpper (*FirstString);
-    UpperSecondString = CharToUpper (*SecondString);
+    UpperFirstString  = CharToUpper(*FirstString);
+    UpperSecondString = CharToUpper(*SecondString);
   }
 
   return UpperFirstString - UpperSecondString;

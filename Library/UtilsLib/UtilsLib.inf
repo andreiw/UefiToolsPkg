@@ -25,6 +25,7 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  UefiToolsPkg/UefiToolsPkg.dec
 
 [LibraryClasses]
   UefiLib

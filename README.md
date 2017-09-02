@@ -10,6 +10,7 @@ Various useful utilities for UEFI.
                   based on platform ACPI/SMBIOS
                   configuration.
 * MemResv       - Create new memory map entries.
+* RangeIsMapped - Validates ranges in the memory map.
 * gdb_uefi.py   - Load TianoCore symbols in gdb.
 * tinycc        - Port of TinyCC to UEFI (X64/AArch64).
 
@@ -180,6 +181,27 @@ To reserve MMIO range 0x91000000-0x910FEFFF:
 
 Note: This tool requires Tiano Core, as it leverages
 the DXE services.
+
+RangeIsMapped
+-------------
+
+Easily check if a range is described in the UEFI memory map,
+either interactively or in a script.
+
+    fs1:\> RangeIsMapped.efi 10540000 10000
+    0x10540000-0x1054FFFF is in the memory map
+    fs1:\> set lasterror
+    lasterror = 0x0
+    fs1:\> RangeIsMapped.efi 10540000 10001
+    0x10540000-0x10550000 not in memory map (starting at 0x10550000)
+    fs1:\> set lasterror
+    lasterror = 0xE
+
+With '-q', the tool can be used quietly in a script.
+
+    fs1:\> RangeIsMapped.efi -q 10540000 10001
+    fs1:\> echo %lasterror%
+    0xE
 
 gdb_uefi.py
 -----------
