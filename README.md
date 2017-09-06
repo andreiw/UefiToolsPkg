@@ -16,8 +16,9 @@ Various useful utilities for UEFI.
 
 Various useful libraries for UEFI.
 
-* UtilsLib      - Consumed by the above utilities.
-* SoftFloatLib  - Port of SoftFloat-3d to UEFI.
+* UtilsLib         - Consumed by the above utilities.
+* StdLibDevConsole - Replacement for StdLib/LibC/Uefi/Devices/Console
+* SoftFloatLib     - Port of SoftFloat-3d to UEFI.
 
 Building
 --------
@@ -243,8 +244,33 @@ sources only.
 
 See https://github.com/andreiw/tinycc and TCC documentation for more.
 
+Libraries
+---------
+
+### UtilsLib
+
+Various useful routines.
+
+### StdLibDevConsole
+
+This is a replacement for StdLib/LibC/Uefi/Devices/Console, for
+linking with "POSIX" applications. If EFI ConOut is graphical, but
+StdErr is redirected to a non-graphical console, stderr will always
+send to ConOut, not StdErr. This solves the unexpected
+behavior of POSIX apps seemingly printing nothing on error on
+certain UEFI implementations that always redirect StdErr to serial.
+
+### SoftFloatLib
+
+This gives you an alternate soft-fp implementation that doesn't
+rely on compiler intrinsics or arch-specific behavior. On
+certain architectures, this library also provides an implementation
+for certain missing compiler intrinsics (e.g. __floatunditf and
+__fixunstfdi on AArch64).
+
 Other UEFI Utilities on the Web
 -------------------------------
+
 - https://github.com/LongSoft/CrScreenshotDxe
 - https://github.com/fpmurphy/UEFI-Utilities-2016
 

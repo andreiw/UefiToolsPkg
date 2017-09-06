@@ -41,6 +41,18 @@
   gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|$(DEBUG_PROPERTY_MASK)
   gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|$(DEBUG_PRINT_ERROR_LEVEL)
 
+!include StdLib/StdLib.inc
+#
+# The following are *overrides* to StdLib libs. The section under
+# which they are included *must match StdLib.inc.
+#
+# Also, stuff might randomly break if StdLib changes in incompatible
+# ways. You've been warned. On the positive note, StdLib/LibC/Uefi/Devices/Console
+# hasn't seen any action since Jan 10, 2016.
+#
+[LibraryClasses.Common.UEFI_APPLICATION]
+  DevConsole|UefiToolsPkg/Library/StdLibDevConsole/daConsole.inf
+
 [LibraryClasses]
   #
   # These are the libraries provided.
@@ -82,8 +94,6 @@
 
 [LibraryClasses.ARM,LibraryClasses.AARCH64,LibraryClasses.PPC64]
   FdtLib|EmbeddedPkg/Library/FdtLib/FdtLib.inf
-
-!include StdLib/StdLib.inc
 
 [Components]
   UefiToolsPkg/Applications/GdbSyms/GdbSyms.inf
