@@ -3,22 +3,26 @@ UefiToolsPkg
 
 Various useful utilities for UEFI.
 
-* FdtDump       - Dump system device tree to storage.
-* AcpiDump      - Dump system ACPI tables to storage.
-* AcpiLoader    - Load system ACPI tables from storage.
-* ShellPlatVars - Set UEFI Shell environment variables
-                  based on platform ACPI/SMBIOS
-                  configuration.
-* MemResv       - Create new memory map entries.
-* RangeIsMapped - Validates ranges in the memory map.
-* gdb_uefi.py   - Load TianoCore symbols in gdb.
-* tinycc        - Port of TinyCC to UEFI (X64/AArch64).
+Name | Description
+---|---
+[FdtDump](#fdtdump) | dump system device tree to storage
+[AcpiDump](#acpidump) | dump system ACPI tables to storage
+[AcpiLoader](#acpiloader) | load system ACPI tables from storage
+[ShellPlatVars](#shellplatvars) | set UEFI Shell environment variables based on platform configuration
+[MemResv](#memresv) | create new memory map entries
+[RangeIsMapped](#rangeismapped) | validates ranges in the memory map
+[tinycc](#tinycc) | port of TinyCC to UEFI (X64/AArch64)
+[ls](#ls) | Port of NetBSD directory lister
+[gdb_uefi.py](#gdb_uefipy) | load TianoCore symbols in gdb
 
 Various useful libraries for UEFI.
 
-* UtilsLib         - Consumed by the above utilities.
-* StdLibDevConsole - Replacement for StdLib/LibC/Uefi/Devices/Console
-* SoftFloatLib     - Port of SoftFloat-3d to UEFI.
+Name | Description
+---|---
+[UtilsLib](#utilslib) | consumed by the above utilities.
+[StdLibDevConsole](#stdlibdevconsole) | replacement for StdLib/LibC/Uefi/Devices/Console
+[SoftFloatLib](#softfloatlib) | port of SoftFloat-3d to UEFI
+[FTSLib](#ftslib) | port of FTS(3) routines, file hierarchy traversal
 
 Building
 --------
@@ -34,8 +38,6 @@ To override architecture and/or toolchain:
 
     $ build -p UefiToolsPkg/UefiToolsPkg.dsc -a PPC64
     $ build -p UefiToolsPkg/UefiToolsPkg.dsc -a X64 -t GCC49
-
-There's no architecture-specific code.
 
 FdtDump
 -------
@@ -204,6 +206,30 @@ With '-q', the tool can be used quietly in a script.
     fs1:\> echo %lasterror%
     0xE
 
+tinycc
+------
+
+Yes, you can now build UEFI applications **in UEFI itself**. You
+will need the EDK2 headers, or be content with buidling precompiled
+sources only.
+
+    fs16:> tcc hello.c
+    fs16:> hello.efi
+    Hello, World!
+
+See https://github.com/andreiw/tinycc and TCC documentation for more.
+
+ls
+--
+
+This is exactly what you think this is. Limitations are highlighted
+in [README.md](Applications/ls/README.md).
+
+    fs3:\> ls.efi -l -h tools
+    total 632K
+    -rwxrwxrwx  1 none  none   62K Mar 14  2017 AcpiDump.efi
+    -rwxrwxrwx  1 none  none   72K Mar 14  2017 AcpiLoader.efi
+
 gdb_uefi.py
 -----------
 
@@ -231,19 +257,6 @@ when starting gdb.
 The -o option should be used if you've debugging EFI, where the PE
 images were converted from MACH-O or ELF binaries.
 
-tinycc
-------
-
-Yes, you can now build UEFI applications **in UEFI itself**. You
-will need the EDK2 headers, or be content with buidling precompiled
-sources only.
-
-    fs16:> tcc hello.c
-    fs16:> hello.efi
-    Hello, World!
-
-See https://github.com/andreiw/tinycc and TCC documentation for more.
-
 Libraries
 ---------
 
@@ -267,6 +280,17 @@ rely on compiler intrinsics or arch-specific behavior. On
 certain architectures, this library also provides an implementation
 for certain missing compiler intrinsics (e.g. __floatunditf and
 __fixunstfdi on AArch64).
+
+### FTSLib
+
+Port of fts.c, FTS(3) file traversal routines. These include
+fts_open, fts_read, fts_children, and so on. As something
+introduced in 4.4BSD, this should have been part of StdLib,
+but isn't.
+
+Don't forget to include [Library/FTSLib.h](Include/Library/FTSLib.h) instead of fts.h.
+
+Limitations are highlighted in [README.md](Library/FTSLib/README.md).
 
 Other UEFI Utilities on the Web
 -------------------------------

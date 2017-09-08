@@ -1,4 +1,5 @@
-/* Time-stamp: <2016-06-11 00:26:27 andreiw>
+/*
+ * Copyright (C) 2017 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
  * are licensed and made available under the terms and conditions of the BSD License

@@ -57,6 +57,7 @@
   #
   # These are the libraries provided.
   #
+  FTSLib|UefiToolsPkg/Library/FTSLib/FTSLib.inf
   UtilsLib|UefiToolsPkg/Library/UtilsLib/UtilsLib.inf
   SoftFloatLib|UefiToolsPkg/Library/SoftFloatLib/SoftFloatLib.inf
   #
@@ -102,6 +103,7 @@
   UefiToolsPkg/Applications/ShellPlatVars/ShellPlatVars.inf
   UefiToolsPkg/Applications/MemResv/MemResv.inf
   UefiToolsPkg/Applications/RangeIsMapped/RangeIsMapped.inf
+  UefiToolsPkg/Applications/ls/ls.inf
 
 [Components.X64,Components.AArch64]
   UefiToolsPkg/Applications/tinycc/TCCInUEFI.inf

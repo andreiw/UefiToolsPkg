@@ -1,0 +1,41 @@
+#
+# Copyright (C) 2017 Andrei Evgenievich Warkentin
+#
+# This program and the accompanying materials
+# are licensed and made available under the terms and conditions of the BSD License
+# which accompanies this distribution.  The full text of the license may be found at
+# http://opensource.org/licenses/bsd-license.php
+#
+# THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+# WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+
+[Defines]
+  INF_VERSION                    = 0x00010006
+  BASE_NAME                      = ls
+  FILE_GUID                      = 4ea84346-7491-4dfd-b442-747010f3cefd
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 0.1
+  ENTRY_POINT                    = ShellCEntryLib
+
+[Sources]
+  ls.c
+  cmp.c
+  print.c
+
+[Packages]
+  StdLib/StdLib.dec
+  MdePkg/MdePkg.dec
+  ShellPkg/ShellPkg.dec
+  UefiToolsPkg/UefiToolsPkg.dec
+
+[LibraryClasses]
+  LibC
+  LibStdio
+  LibMath
+  LibLocale
+  DevShell
+  LibErr
+  LibTime
+  FTSLib
+

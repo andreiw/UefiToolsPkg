@@ -1,0 +1,37 @@
+#
+# Time-stamp: <2016-06-11 00:40:05 andreiw>
+# Copyright (C) 2016 Andrei Evgenievich Warkentin
+#
+# This program and the accompanying materials
+# are licensed and made available under the terms and conditions of the BSD License
+# which accompanies this distribution.  The full text of the license may be found at
+# http://opensource.org/licenses/bsd-license.php
+#
+# THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+# WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = FTSLib
+  FILE_GUID                      = ddbacbb1-bb25-11df-8e4e-0002a5d5d51c
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = FTSLib
+
+[Sources]
+  fts.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  UefiToolsPkg/UefiToolsPkg.dec
+  StdLib/StdLib.dec
+
+[LibraryClasses]
+  LibC
+  LibStdio
+
+[Guids]
+
+[Protocols]
