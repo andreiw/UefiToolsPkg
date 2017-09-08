@@ -502,9 +502,9 @@ display(FTSENT *p, FTSENT *list)
 	off_t maxsize;
 	blkcnt_t maxblock;
 	ino_t maxinode;
-	/* int maxmajor, maxminor; */
+	int maxmajor, maxminor;
 	uint32_t maxnlink;
-	int /* bcfile,  */entries, flen, glen, ulen, maxflags, maxgroup;
+	int bcfile, entries, flen, glen, ulen, maxflags, maxgroup;
 	unsigned int maxlen;
 	int maxuser, needstats;
 	const char *user, *group;
@@ -525,10 +525,10 @@ display(FTSENT *p, FTSENT *list)
 	needstats = /* f_inode ||  */f_longform || f_size;
 	flen = 0;
 	maxinode = maxnlink = 0;
-	/* bcfile = 0; */
+	bcfile = 0;
 	maxuser = maxgroup = maxflags = maxlen = 0;
 	btotal = stotal = maxblock = maxsize = 0;
-	/* maxmajor = maxminor = 0; */
+	maxmajor = maxminor = 0;
 	for (cur = list, entries = 0; cur; cur = cur->fts_link) {
           
 		if (cur->fts_info == FTS_ERR || cur->fts_info == FTS_NS) {
@@ -572,13 +572,13 @@ display(FTSENT *p, FTSENT *list)
                         maxnlink = 1;
 			if (sp->st_size > maxsize)
 				maxsize = sp->st_size;
-			/* if (S_ISCHR(sp->st_mode) || S_ISBLK(sp->st_mode)) { */
-				/* bcfile = 1; */
+			if (S_ISCHR(sp->st_mode) || S_ISBLK(sp->st_mode)) {
+				bcfile = 1;
 				/* if (major(sp->st_rdev) > maxmajor) */
 				/* 	maxmajor = major(sp->st_rdev); */
 				/* if (minor(sp->st_rdev) > maxminor) */
 				/* 	maxminor = minor(sp->st_rdev); */
-			/* } */
+			}
 
                         /*
                          * UEFI.
@@ -677,16 +677,16 @@ display(FTSENT *p, FTSENT *list)
 				d.s_size += (d.s_size - 1) / 3;
 		}
 		d.s_user = maxuser;
-		/* if (bcfile) { */
-		/* 	(void)snprintf(buf, sizeof(buf), "%d", maxmajor); */
-		/* 	d.s_major = strlen(buf); */
-		/* 	(void)snprintf(buf, sizeof(buf), "%d", maxminor); */
-		/* 	d.s_minor = strlen(buf); */
-		/* 	if (d.s_major + d.s_minor + 2 > d.s_size) */
-		/* 		d.s_size = d.s_major + d.s_minor + 2; */
-		/* 	else if (d.s_size - d.s_minor - 2 > d.s_major) */
-		/* 		d.s_major = d.s_size - d.s_minor - 2; */
-		/* } else */ {
+		if (bcfile) {
+			(void)snprintf(buf, sizeof(buf), "%d", maxmajor);
+			d.s_major = strlen(buf);
+			(void)snprintf(buf, sizeof(buf), "%d", maxminor);
+			d.s_minor = strlen(buf);
+			if (d.s_major + d.s_minor + 2 > d.s_size)
+				d.s_size = d.s_major + d.s_minor + 2;
+			else if (d.s_size - d.s_minor - 2 > d.s_major)
+				d.s_major = d.s_size - d.s_minor - 2;
+		} else {
 			d.s_major = 0;
 			d.s_minor = 0;
 		}

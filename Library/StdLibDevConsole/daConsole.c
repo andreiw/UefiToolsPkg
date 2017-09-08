@@ -429,6 +429,8 @@ da_ConStat(
   // All of our parameters are correct, so fill in the information.
   Buffer->st_blksize  = 0;   // Character device, not a block device
   Buffer->st_mode     = filp->f_iflags;
+  Buffer->st_birthtime = time(NULL);
+  Buffer->st_atime = Buffer->st_mtime = Buffer->st_birthtime;
 
 // ConGetPosition
   if(Stream->InstanceNum == STDIN_FILENO) {
@@ -436,13 +438,14 @@ da_ConStat(
     Buffer->st_curpos    = 0;
     Buffer->st_size      = (off_t)Stream->NumRead;
     Buffer->st_physsize  = 1;
-  }
-  else {
+    Buffer->st_mode |= READ_PERMS;
+  } else {
     Proto = (EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *)Stream->Dev;
     CursorPos.XYpos.Column  = (UINT32)Proto->Mode->CursorColumn;
     CursorPos.XYpos.Row     = (UINT32)Proto->Mode->CursorRow;
     Buffer->st_curpos       = (off_t)CursorPos.Offset;
     Buffer->st_size         = (off_t)Stream->NumWritten;
+    Buffer->st_mode |= WRITE_PERMS;
 
     OutMode  = Proto->Mode->Mode;
     EFIerrno = Proto->QueryMode(Proto, (UINTN)OutMode, &ModeCol, &ModeRow);

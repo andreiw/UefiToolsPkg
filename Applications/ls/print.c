@@ -239,6 +239,8 @@ strmode(mode, p)
   case S_IFDIR:/* directory */
     *p++ = 'd';
     break;
+  case S_IFCHR | S_ITTY:
+  case S_IFCHR | S_ITTY | S_IWTTY:
   case S_IFCHR:/* character special */
     *p++ = 'c';
     break;
@@ -451,11 +453,11 @@ printlong(DISPLAY *dp)
 		(void)printf("%-*s  ", dp->s_group, np->group);
 		/* if (f_flags) */
 		/* 	(void)printf("%-*s ", dp->s_flags, np->flags); */
-		/* if (S_ISCHR(sp->st_mode) || S_ISBLK(sp->st_mode)) */
-		/* 	(void)printf("%*lld, %*lld ", */
-		/* 	    dp->s_major, (long long)major(sp->st_rdev), */
-		/* 	    dp->s_minor, (long long)minor(sp->st_rdev)); */
-		/* else */ { 
+		if (S_ISCHR(sp->st_mode) || S_ISBLK(sp->st_mode))
+			(void)printf("%*lld, %*lld ",
+			    dp->s_major, (long long) 0 /* major(sp->st_rdev) */,
+			    dp->s_minor, (long long) 0 /* minor(sp->st_rdev) */);
+		else {
 			if (f_humanize) {
 				if ((humanize_number(szbuf, sizeof(szbuf),
 				    sp->st_size, "", HN_AUTOSCALE,
