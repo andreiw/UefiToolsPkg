@@ -80,11 +80,4 @@ typedef struct {
 	char data[1];
 } NAMES;
 
-/*
- * StdLib/Include/sys/stat.h defines this incorrectly. Sigh.
- */
-#undef S_ISCHR
-#define S_ISCHR(m) (((m & _S_IFMT) == _S_IFCHR) ||                     \
-                    ((m & _S_IFMT) == (_S_IFCHR | S_ITTY)) ||          \
-                    ((m & _S_IFMT) == (_S_IFCHR | S_ITTY | S_IWTTY)))  \
-
+#include <Library/StdExtLib.h>

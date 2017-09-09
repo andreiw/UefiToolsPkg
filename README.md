@@ -13,6 +13,7 @@ Name | Description
 [RangeIsMapped](#rangeismapped) | validates ranges in the memory map
 [tinycc](#tinycc) | port of TinyCC to UEFI (X64/AArch64)
 [ls](#ls) | Port of NetBSD directory lister
+[stat](#stat) | Port of NetBSD stat
 [gdb_uefi.py](#gdb_uefipy) | load TianoCore symbols in gdb
 
 Various useful libraries for UEFI.
@@ -23,6 +24,7 @@ Name | Description
 [StdLibDevConsole](#stdlibdevconsole) | replacement for StdLib/LibC/Uefi/Devices/Console
 [SoftFloatLib](#softfloatlib) | port of SoftFloat-3d to UEFI
 [FTSLib](#ftslib) | port of FTS(3) routines, file hierarchy traversal
+[StdExtLib](#stdextlib) | fixes and functionality on top of StdLib
 
 Building
 --------
@@ -230,6 +232,20 @@ in [README.md](Applications/ls/README.md).
     -rwxrwxrwx  1 none  none   62K Mar 14  2017 AcpiDump.efi
     -rwxrwxrwx  1 none  none   72K Mar 14  2017 AcpiLoader.efi
 
+stat
+----
+
+Display file status. Limitations are highlighted
+in [README.md](Applications/stat/README.md).
+
+    fs3:\> stat -x
+      File: "(stdin)"
+      Size: 0
+      FileType: Character Device
+      Mode: (0555/cr-xr-xr-x)
+    Access: Wed Dec 31 23:59:59 1969
+    Modify: Wed Dec 31 23:59:59 1969
+
 gdb_uefi.py
 -----------
 
@@ -291,6 +307,13 @@ but isn't.
 Don't forget to include [Library/FTSLib.h](Include/Library/FTSLib.h) instead of fts.h.
 
 Limitations are highlighted in [README.md](Library/FTSLib/README.md).
+
+### StdExtLib
+
+This provides functionality that should be in the edk2 StdLib, but isn't, and that
+isn't large enough to be a library on its own. This also overrides
+some broken behavior in StdLib, so be sure to include [Library/StdExtLib.h](Include/Library/StdExtLib.h)
+last.
 
 Other UEFI Utilities on the Web
 -------------------------------

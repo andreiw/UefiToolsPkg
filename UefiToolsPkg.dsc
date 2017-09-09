@@ -59,6 +59,7 @@
   #
   FTSLib|UefiToolsPkg/Library/FTSLib/FTSLib.inf
   UtilsLib|UefiToolsPkg/Library/UtilsLib/UtilsLib.inf
+  StdExtLib|UefiToolsPkg/Library/StdExtLib/StdExtLib.inf
   SoftFloatLib|UefiToolsPkg/Library/SoftFloatLib/SoftFloatLib.inf
   #
   # Everything else below is a dependency.
@@ -104,6 +105,7 @@
   UefiToolsPkg/Applications/MemResv/MemResv.inf
   UefiToolsPkg/Applications/RangeIsMapped/RangeIsMapped.inf
   UefiToolsPkg/Applications/ls/ls.inf
+  UefiToolsPkg/Applications/stat/stat.inf
 
 [Components.X64,Components.AArch64]
   UefiToolsPkg/Applications/tinycc/TCCInUEFI.inf

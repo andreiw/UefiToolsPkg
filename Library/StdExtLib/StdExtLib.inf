@@ -11,31 +11,26 @@
 #
 
 [Defines]
-  INF_VERSION                    = 0x00010006
-  BASE_NAME                      = ls
-  FILE_GUID                      = 4ea84346-7491-4dfd-b442-747010f3cefd
-  MODULE_TYPE                    = UEFI_APPLICATION
-  VERSION_STRING                 = 0.1
-  ENTRY_POINT                    = ShellCEntryLib
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = StdExtLib
+  FILE_GUID                      = ddcbcbc1-bb25-11df-8e4e-0002a5d5c51c
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = StdExtLib
 
 [Sources]
-  ls.c
-  cmp.c
-  print.c
+  strmode.c
+  humanize.c
 
 [Packages]
-  StdLib/StdLib.dec
   MdePkg/MdePkg.dec
-  ShellPkg/ShellPkg.dec
+  MdeModulePkg/MdeModulePkg.dec
   UefiToolsPkg/UefiToolsPkg.dec
+  StdLib/StdLib.dec
 
 [LibraryClasses]
   LibC
-  LibStdio
-  LibMath
-  LibLocale
-  DevShell
-  LibErr
-  LibTime
-  FTSLib
-  StdExtLib
+
+[Guids]
+
+[Protocols]

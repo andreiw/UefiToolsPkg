@@ -12,16 +12,14 @@
 
 [Defines]
   INF_VERSION                    = 0x00010006
-  BASE_NAME                      = ls
+  BASE_NAME                      = stat
   FILE_GUID                      = 4ea84346-7491-4dfd-b442-747010f3cefd
   MODULE_TYPE                    = UEFI_APPLICATION
   VERSION_STRING                 = 0.1
   ENTRY_POINT                    = ShellCEntryLib
 
 [Sources]
-  ls.c
-  cmp.c
-  print.c
+  stat.c
 
 [Packages]
   StdLib/StdLib.dec
@@ -37,5 +35,4 @@
   DevShell
   LibErr
   LibTime
-  FTSLib
   StdExtLib
