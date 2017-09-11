@@ -135,11 +135,13 @@ da_ConSeek(
   // Quick check to see if Stream looks reasonable
   if(Stream->Cookie != CON_COOKIE) {    // Cookie == 'IoAb'
     EFIerrno = RETURN_INVALID_PARAMETER;
+    errno = EINVAL;
     return -1;    // Looks like a bad This pointer
   }
   if(Stream->InstanceNum == STDIN_FILENO) {
     // Seek is not valid for stdin
     EFIerrno = RETURN_UNSUPPORTED;
+    errno = EIO;
     return -1;
   }
   // Everything is OK to do the final verification and "seek".
@@ -151,6 +153,7 @@ da_ConSeek(
                                       (INTN)CursorPos.XYpos.Row);
 
   if(RETURN_ERROR(EFIerrno)) {
+    errno = EINVAL;
     return -1;
   }
   else {
@@ -190,11 +193,13 @@ da_ConWrite(
   // Quick check to see if Stream looks reasonable
   if(Stream->Cookie != CON_COOKIE) {    // Cookie == 'IoAb'
     EFIerrno = RETURN_INVALID_PARAMETER;
+    errno = EINVAL;
     return -1;    // Looks like a bad This pointer
   }
   if(Stream->InstanceNum == STDIN_FILENO) {
     // Write is not valid for stdin
     EFIerrno = RETURN_UNSUPPORTED;
+    errno = EIO;
     return -1;
   }
   // Everything is OK to do the write.
@@ -218,6 +223,13 @@ da_ConWrite(
   if(!RETURN_ERROR(Status)) {
     NumChar = BufferSize;
     Stream->NumWritten += NumChar;
+  }
+
+  if (RETURN_ERROR(Status)) {
+    /*
+     * Should try harder to decode.
+     */
+    errno = EIO;
   }
   EFIerrno = Status;      // Make error reason available to caller
   return NumChar;
@@ -253,6 +265,8 @@ da_ConRawRead (
   Self    = (cIIO *)filp->devdata;
   Stream  = BASE_CR(filp->f_ops, ConInstance, Abstraction);
   Proto   = (EFI_SIMPLE_TEXT_INPUT_PROTOCOL *)Stream->Dev;
+
+  ASSERT(Stream->InstanceNum == STDIN_FILENO);
 
   if(Stream->UnGetKey == CHAR_NULL) {
     Status = Proto->ReadKeyStroke(Proto, &Key);
@@ -331,6 +345,15 @@ da_ConRead(
   wchar_t                           RetChar;
 
   NumRead = -1;
+
+  Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
+  if(Stream->InstanceNum != STDIN_FILENO) {
+    // Read is not valid for stdout and stderr.
+    EFIerrno = RETURN_UNSUPPORTED;
+    errno = EIO;
+    return -1;
+  }
+
   if(BufferSize < sizeof(wchar_t)) {
     errno = EINVAL;     // Buffer is too small to hold one character
   }
@@ -671,7 +694,7 @@ da_ConPoll(
     EFIerrno = RETURN_INVALID_PARAMETER;
     return POLLNVAL;    // Looks like a bad filp pointer
   }
-  if(Stream->InstanceNum == 0) {
+  if(Stream->InstanceNum == STDIN_FILENO) {
     // STDIN: Only input is supported for this device
     Status = da_ConRawRead (filp, &Stream->UnGetKey);
     if(Status == RETURN_SUCCESS) {

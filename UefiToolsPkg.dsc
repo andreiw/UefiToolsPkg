@@ -51,6 +51,8 @@
 # hasn't seen any action since Jan 10, 2016.
 #
 [LibraryClasses.Common.UEFI_APPLICATION]
+  LibUefi|UefiToolsPkg/Library/StdLibUefi/Uefi.inf
+  LibIIO|UefiToolsPkg/Library/StdLibInteractiveIO/IIO.inf
   DevConsole|UefiToolsPkg/Library/StdLibDevConsole/daConsole.inf
 
 [LibraryClasses]
@@ -106,6 +108,7 @@
   UefiToolsPkg/Applications/RangeIsMapped/RangeIsMapped.inf
   UefiToolsPkg/Applications/ls/ls.inf
   UefiToolsPkg/Applications/stat/stat.inf
+  UefiToolsPkg/Applications/cat/cat.inf
 
 [Components.X64,Components.AArch64]
   UefiToolsPkg/Applications/tinycc/TCCInUEFI.inf

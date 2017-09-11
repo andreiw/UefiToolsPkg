@@ -28,6 +28,8 @@
 
 void strmode(mode_t mode, char *p);
 
+int toascii(int c);
+
 #define HN_DECIMAL      0x01
 #define HN_NOSPACE      0x02
 #define HN_B            0x04

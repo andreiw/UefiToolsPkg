@@ -14,6 +14,7 @@ Name | Description
 [tinycc](#tinycc) | port of TinyCC to UEFI (X64/AArch64)
 [ls](#ls) | Port of NetBSD directory lister
 [stat](#stat) | Port of NetBSD stat
+[cat](#cat) | Port of NetBSD cat
 [gdb_uefi.py](#gdb_uefipy) | load TianoCore symbols in gdb
 
 Various useful libraries for UEFI.
@@ -21,7 +22,6 @@ Various useful libraries for UEFI.
 Name | Description
 ---|---
 [UtilsLib](#utilslib) | consumed by the above utilities.
-[StdLibDevConsole](#stdlibdevconsole) | replacement for StdLib/LibC/Uefi/Devices/Console
 [SoftFloatLib](#softfloatlib) | port of SoftFloat-3d to UEFI
 [FTSLib](#ftslib) | port of FTS(3) routines, file hierarchy traversal
 [StdExtLib](#stdextlib) | fixes and functionality on top of StdLib
@@ -246,6 +246,15 @@ in [README.md](Applications/stat/README.md).
     Access: Wed Dec 31 23:59:59 1969
     Modify: Wed Dec 31 23:59:59 1969
 
+cat
+---
+
+Catenate and print files. Limitations are highlighted
+in [README.md](Applications/cat/README.md).
+
+    fs3:\> cat
+    ^D
+
 gdb_uefi.py
 -----------
 
@@ -280,15 +289,6 @@ Libraries
 
 Various useful routines.
 
-### StdLibDevConsole
-
-This is a replacement for StdLib/LibC/Uefi/Devices/Console, for
-linking with "POSIX" applications. If EFI ConOut is graphical, but
-StdErr is redirected to a non-graphical console, stderr will always
-send to ConOut, not StdErr. This solves the unexpected
-behavior of POSIX apps seemingly printing nothing on error on
-certain UEFI implementations that always redirect StdErr to serial.
-
 ### SoftFloatLib
 
 This gives you an alternate soft-fp implementation that doesn't
@@ -312,8 +312,22 @@ Limitations are highlighted in [README.md](Library/FTSLib/README.md).
 
 This provides functionality that should be in the edk2 StdLib, but isn't, and that
 isn't large enough to be a library on its own. This also overrides
-some broken behavior in StdLib, so be sure to include [Library/StdExtLib.h](Include/Library/StdExtLib.h)
-last.
+some broken behavior in StdLib, so be sure to include
+[Library/StdExtLib.h](Include/Library/StdExtLib.h) last.
+
+There also a few overrides for StdLib that fix broken StdLib
+behavior or add features. These are standalone components, but
+are highly suggested to be used, and so effectively should
+be treated like a part of StdExtLib.
+
+What | Replaces | Notes
+--- | --- | ---
+StdLibUefi | DevUefi | [README.md](Library/StdLibUefi/README.md)
+StdLibDevConsole | DevConsole | [README.md](Library/StdLibDevConsole/README.md)
+StdLibInteractiveIO | LibIIO | [README.md](Library/StdLibInteractiveIO/README.md)
+
+I ought to upstream at least some of these fixes. Without these fixes, the
+NetBSD tools in this collection will work even worse than they do now ;-).
 
 Other UEFI Utilities on the Web
 -------------------------------
