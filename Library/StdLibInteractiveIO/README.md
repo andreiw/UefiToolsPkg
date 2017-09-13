@@ -13,6 +13,9 @@ Differences:
 - No default Termios initialization.
 - Fix `IIO_Echo` calling `fo_write` with 0 bytes.
 - Fix `IIO_Write` callling `fo_write` with 0 bytes (not seen in the wild, but...)
+- Fix `IIO_Write` incorrectly treating CharLen as signed size, leading to crashes
+  and unpredictable behavior on writes of binary data through IIO.
+- Fix `IIO_Write` to allow printing wide NULs.
 
 It seem InteractiveIO is its own ad-hoc, and very buggy implementation
 of a line discipline. That seems like a mistake.

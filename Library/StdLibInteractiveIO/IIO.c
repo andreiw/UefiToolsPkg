@@ -211,9 +211,16 @@ IIO_Write(
 
   NumConsumed = 0;
   OutChar[0]  = (wchar_t)buf[0];
-  while((OutChar[0] != 0) && (NumConsumed < N)) {
+  while(NumConsumed < N) {
     CharLen = mbrtowc(OutChar, (const char *)&buf[NumConsumed], MB_CUR_MAX, OutState);
-    if (CharLen < 0) {  // Encoding Error
+    if (CharLen == 0) {
+      /*
+       * mbrtowc saw a NUL character. Keep calm - it stored a wide NUL and
+       * reset the internal shift state.
+       */
+      CharLen = 1;
+    } else if (CharLen == (size_t) -1 ||
+               CharLen == (size_t) -2) {  // Encoding Error
       OutChar[0] = BLOCKELEMENT_LIGHT_SHADE;
       CharLen = 1;  // Consume a byte
       (void)mbrtowc(NULL, NULL, 1, OutState);  // Re-Initialize the conversion state

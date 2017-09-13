@@ -75,48 +75,6 @@ static cIIO          *IIO;
 static BOOLEAN        TtyCooked;
 static BOOLEAN        TtyEcho;
 
-/** Convert string from MBCS to WCS and translate \n to \r\n.
-
-    It is the caller's responsibility to ensure that dest is
-    large enough to hold the converted results.  It is guaranteed
-    that there will be fewer than n characters placed in dest.
-
-    @param[out]     dest    WCS buffer to receive the converted string.
-    @param[in]      buf     MBCS string to convert to WCS.
-    @param[in]      n       Number of BYTES contained in buf.
-    @param[in,out]  Cs      Pointer to the character state object for this stream
-
-    @return   The number of BYTES consumed from buf.
-**/
-ssize_t
-WideTtyCvt( CHAR16 *dest, const char *buf, ssize_t n, mbstate_t *Cs)
-{
-  ssize_t i     = 0;
-  int     numB  = 0;
-  wchar_t wc[2];
-
-  while(n > 0) {
-    numB = (int)mbrtowc(wc, buf, MIN(MB_LEN_MAX,n), Cs);
-    if( numB == 0) {
-      break;
-    };
-    if(numB < 0) {    // If an unconvertable character, replace it.
-      wc[0] = BLOCKELEMENT_LIGHT_SHADE;
-      numB = 1;
-    }
-    if(wc[0] == L'\n') {
-      *dest++ = L'\r';
-      ++i;
-    }
-    *dest++ = (CHAR16)wc[0];
-    i += numB;
-    n -= numB;
-    buf += numB;
-  }
-  *dest = 0;
-  return i;
-}
-
 /**
   Remove the unicode file tag from the begining of the file buffer.
 

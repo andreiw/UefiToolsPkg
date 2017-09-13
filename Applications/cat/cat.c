@@ -66,23 +66,25 @@ __RCSID("$NetBSD: cat.c,v 1.47.20.1 2017/03/25 17:41:48 snj Exp $");
 int bflag, eflag, fflag, lflag, nflag, sflag, tflag, vflag;
 int rval;
 const char *filename;
+const char *outname = NULL;
 
 int main(int, char *[]);
-void cook_args(char *argv[]);
-void cook_buf(FILE *);
-void raw_args(char *argv[]);
-void raw_cat(int);
+void cook_args(char *argv[], int wfd);
+void cook_buf(FILE *, int wfd);
+void raw_args(char *argv[], int wfd);
+void raw_cat(int rfd, int wfd);
 
 int
 main(int argc, char *argv[])
 {
 	int ch;
+	int wfd;
 	/* struct flock stdout_lock; */
 
 	setprogname(argv[0]);
 	(void)setlocale(LC_ALL, "");
 
-	while ((ch = getopt(argc, argv, "beflnstuv")) != -1)
+	while ((ch = getopt(argc, argv, "beflnstuvo:")) != -1)
 		switch (ch) {
 		case 'b':
 			bflag = nflag = 1;	/* -b implies -n */
@@ -111,10 +113,13 @@ main(int argc, char *argv[])
 		case 'v':
 			vflag = 1;
 			break;
+		case 'o':
+			outname = optarg;
+			break;
 		default:
 		case '?':
 			(void)fprintf(stderr,
-			    "usage: cat [-beflnstuv] [-] [file ...]\n");
+			    "usage: cat [-o outfile] [-beflnstuv] [-] [file ...]\n");
 			exit(EXIT_FAILURE);
 			/* NOTREACHED */
 		}
@@ -129,17 +134,23 @@ main(int argc, char *argv[])
 		/* 	err(EXIT_FAILURE, "stdout"); */
 	}
 
+	if (outname != NULL) {
+		wfd = open(outname, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+	} else {
+		wfd = fileno(stdout);
+	}
+
 	if (bflag || eflag || nflag || sflag || tflag || vflag)
-		cook_args(argv);
+		cook_args(argv, wfd);
 	else
-		raw_args(argv);
+		raw_args(argv, wfd);
 	if (fclose(stdout))
 		err(EXIT_FAILURE, "stdout");
 	return (rval);
 }
 
 void
-cook_args(char **argv)
+cook_args(char **argv, int wfd)
 {
 	FILE *fp;
 
@@ -158,7 +169,7 @@ cook_args(char **argv)
 			}
 			filename = *argv++;
 		}
-		cook_buf(fp);
+		cook_buf(fp, wfd);
 		if (fp != stdin)
 			(void)fclose(fp);
 		else
@@ -167,7 +178,7 @@ cook_args(char **argv)
 }
 
 void
-cook_buf(FILE *fp)
+cook_buf(FILE *fp, int wfd)
 {
 	int ch, gobble, line, prev;
 
@@ -233,7 +244,7 @@ cook_buf(FILE *fp)
 }
 
 void
-raw_args(char **argv)
+raw_args(char **argv, int wfd)
 {
 	int fd;
 
@@ -269,23 +280,21 @@ skipnomsg:
 			}
 			filename = *argv++;
 		}
-		raw_cat(fd);
+		raw_cat(fd, wfd);
 		if (fd != fileno(stdin))
 			(void)close(fd);
 	} while (*argv);
 }
 
 void
-raw_cat(int rfd)
+raw_cat(int rfd, int wfd)
 {
 	static char *buf;
 	static char fb_buf[BUFSIZ];
 	static size_t bsize;
 
 	ssize_t nr, nw, off;
-	int wfd;
 
-	wfd = fileno(stdout);
 	if (buf == NULL) {
 		struct stat sbuf;
 
@@ -299,10 +308,17 @@ raw_cat(int rfd)
 			buf = fb_buf;
 		}
 	}
-	while ((nr = read(rfd, buf, bsize)) > 0)
-		for (off = 0; nr; nr -= nw, off += nw)
+	while ((nr = read(rfd, buf, bsize)) > 0) {
+		for (off = 0; nr; nr -= nw, off += nw) {
 			if ((nw = write(wfd, buf + off, (size_t)nr)) < 0)
 				err(EXIT_FAILURE, "stdout");
+
+			if (nw == 0) {
+				err(EXIT_FAILURE, "short write to stdout");
+			}
+		}
+	}
+
 	if (nr < 0) {
 		warn("%s", filename);
 		rval = EXIT_FAILURE;
