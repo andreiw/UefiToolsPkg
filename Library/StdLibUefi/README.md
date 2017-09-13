@@ -1,9 +1,7 @@
-This is a fixed-up version of StdLib/LibC/Uefi.
+This is a fixed-up version of edk2's `StdLib/LibC/Uefi`.
 
-NOTE: StdLibDevConsole, StdLibInteractiveIO and StdLibUefi all go together.
+NOTE: [`StdLibDevConsole`](../StdLibDevConsole), [`StdLibInteractiveIO`](../StdLibInteractiveIO) and [`StdLibUefi`](../StdLibUefi) all go together.
 
 Differences:
-- ^D is the VEOF character, allowing to break out of input.
-  Note: you'll need the new LibIIO, too.
-- Termios init is moved to Library/StdLibDevConsole/daConsole.c,
-  where it belongs.
+- `^D` is the `VEOF` character, allowing to break out of input.
+- Termios init is moved to StdLibDevConsole, where it belongs.
