@@ -23,7 +23,7 @@
 
   DEFINE DEBUG_ENABLE_OUTPUT      = FALSE       # Set to TRUE to enable debug output
   DEFINE DEBUG_PRINT_ERROR_LEVEL  = 0x80000040  # Flags to control amount of debug output
-  DEFINE DEBUG_PROPERTY_MASK      = 0
+  DEFINE DEBUG_PROPERTY_MASK      = 0x2f
 
 [BuildOptions]
   #

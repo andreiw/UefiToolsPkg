@@ -64,78 +64,77 @@ IIO_EchoOne (
   NumEcho = -1;
   This    = filp->devdata;
 
-  if(This != NULL) {
-    LFlags  = This->Termio.c_lflag;
-    OutBuf  = This->OutBuf;
-    InBuf   = This->InBuf;
-    AttrBuf = This->AttrBuf;
-    AttrDex = InBuf->GetWDex(InBuf);
+  if (This == NULL) {
+    errno = EINVAL;
+    return -1;
+  }
 
-    switch(InCh) {
-      case IIO_ECHO_DISCARD:
-        // Do not buffer or otherwise process
-        NumEcho = 0;
-        break;
+  LFlags  = This->Termio.c_lflag;
+  OutBuf  = This->OutBuf;
+  InBuf   = This->InBuf;
+  AttrBuf = This->AttrBuf;
+  AttrDex = InBuf->GetWDex(InBuf);
 
-      case IIO_ECHO_ERASE:
-        // Delete last character from InBuf
-        if(!InBuf->IsEmpty(InBuf)) {
-          (void)InBuf->Truncate(InBuf);
+  switch(InCh) {
+  case IIO_ECHO_DISCARD:
+    // Do not buffer or otherwise process
+    NumEcho = 0;
+    break;
 
-          // Erase screen character(s) based on Attrib value
-          if(LFlags & ECHO) {
-            AttrDex = (UINT32)ModuloDecrement(AttrDex, InBuf->NumElements);
-            NumEcho = AttrBuf[AttrDex];
-            for(i = 0; i < NumEcho; ++i) {
-              (void)IIO_WriteOne(filp, OutBuf, CHAR_BACKSPACE);
-            }
-            if(LFlags & ECHOE) {
-              for(i = 0; i < NumEcho; ++i) {
-                (void)IIO_WriteOne(filp, OutBuf, L' ');
-              }
-              for(i = 0; i < NumEcho; ++i) {
-                (void)IIO_WriteOne(filp, OutBuf, CHAR_BACKSPACE);
-              }
-            }
-          }
-          else {
-            NumEcho = 0;
-          }
+  case IIO_ECHO_ERASE:
+    // Delete last character from InBuf
+    if(!InBuf->IsEmpty(InBuf)) {
+      (void)InBuf->Truncate(InBuf);
+
+      // Erase screen character(s) based on Attrib value
+      if(LFlags & ECHO) {
+        AttrDex = (UINT32)ModuloDecrement(AttrDex, InBuf->NumElements);
+        NumEcho = AttrBuf[AttrDex];
+        for(i = 0; i < NumEcho; ++i) {
+          (void)IIO_WriteOne(filp, OutBuf, CHAR_BACKSPACE);
         }
-        break;
-
-      case IIO_ECHO_KILL:
-        // Flush contents of InBuf and OutBuf
-        InBuf->Flush(InBuf, (size_t)-1);
-        OutBuf->Flush(OutBuf, (size_t)-1);
-
-        // Erase characters from screen.
         if(LFlags & ECHOE) {
-          NumEcho = IIO_CursorDelta(This, &This->InitialXY, &This->CurrentXY);
           for(i = 0; i < NumEcho; ++i) {
             (void)IIO_WriteOne(filp, OutBuf, L' ');
           }
+          for(i = 0; i < NumEcho; ++i) {
+            (void)IIO_WriteOne(filp, OutBuf, CHAR_BACKSPACE);
+          }
         }
-        break;
-
-      default:
-        // Add character to input buffer
-        (void)InBuf->Write(InBuf, &InCh, 1);
-
-        NumEcho = 0;  // In case echoing is not enabled or OK
-        // If echoing is OK and enabled, "echo" character using IIO_WriteOne
-        if( EchoIsOK                &&
-            ( (LFlags & ECHO)       ||
-              ((LFlags & ECHONL) && (InCh == CHAR_LINEFEED))))
-        {
-          NumEcho = IIO_WriteOne(filp, OutBuf, InCh);
-        }
-        AttrBuf[AttrDex] = (UINT8)NumEcho;
-        break;
+      }
+      else {
+        NumEcho = 0;
+      }
     }
+    break;
+  case IIO_ECHO_KILL:
+    // Flush contents of InBuf and OutBuf
+    InBuf->Flush(InBuf, (size_t)-1);
+    OutBuf->Flush(OutBuf, (size_t)-1);
+
+    // Erase characters from screen.
+    if(LFlags & ECHOE) {
+      NumEcho = IIO_CursorDelta(This, &This->InitialXY, &This->CurrentXY);
+      for(i = 0; i < NumEcho; ++i) {
+        (void)IIO_WriteOne(filp, OutBuf, L' ');
+      }
+    }
+    break;
+  default:
+    // Add character to input buffer
+    (void)InBuf->Write(InBuf, &InCh, 1);
+
+    NumEcho = 0;  // In case echoing is not enabled or OK
+    // If echoing is OK and enabled, "echo" character using IIO_WriteOne
+    if( EchoIsOK                &&
+        ( (LFlags & ECHO)       ||
+          ((LFlags & ECHONL) && (InCh == CHAR_LINEFEED)))) {
+      NumEcho = IIO_WriteOne(filp, OutBuf, InCh);
+    }
+
+    AttrBuf[AttrDex] = (UINT8)NumEcho;
+    break;
   }
-  else {
-    errno = EINVAL;
-  }
+
   return NumEcho;
 }

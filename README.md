@@ -316,9 +316,8 @@ some broken behavior in StdLib, so be sure to include
 [Library/StdExtLib.h](Include/Library/StdExtLib.h) last.
 
 There also a few overrides for StdLib that fix broken StdLib
-behavior or add features. These are standalone components, but
-are highly suggested to be used, and so effectively should
-be treated like a part of StdExtLib.
+behavior or add features. These are highly suggested to be used,
+and so effectively should be treated like a part of StdExtLib.
 
 What | Replaces | Notes
 --- | --- | ---

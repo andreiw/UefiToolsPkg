@@ -91,7 +91,6 @@ IIO_CanonRead (
     ssize_t CharRead;
 
     CharRead = IIO_GetInChar(filp, FirstRead, &InChar);
-    ASSERT(CharRead != 0);
     if (CharRead <= 0) {
       /*
        * Error or EOF.

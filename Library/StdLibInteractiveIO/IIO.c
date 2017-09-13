@@ -175,68 +175,81 @@ IIO_Write(
 
   NumConsumed = -1;
 
-  /* Determine what the current screen size is. Also validates the output device. */
+  /*
+   * Determine what the current screen size is. Also validates the output device.
+   *
+   * andreiw: even if we're redirecting via a Shell SHELL_FILE_HANDLE object,
+   * we still want to use the "real" ConOut sizing info.
+   */
   OutMode = IIO_GetOutputSize(filp->MyFD, &MaxColumn, &MaxRow);
+  if (OutMode < 0) {
+    return -1;
+  }
 
   This = filp->devdata;
-  if((This != NULL) && (OutMode >= 0)) {
-    if(filp->MyFD == STDERR_FILENO) {
-      OutBuf = This->ErrBuf;
-      OutState  = &This->ErrState;
+  if (This == NULL) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  if(filp->MyFD == STDERR_FILENO) {
+    OutBuf = This->ErrBuf;
+    OutState  = &This->ErrState;
+  } else {
+    OutBuf = This->OutBuf;
+    OutState  = &This->OutState;
+  }
+
+  /*  Set the maximum screen dimensions. */
+  This->MaxColumn = MaxColumn;
+  This->MaxRow    = MaxRow;
+
+  /*  Record where the cursor is at the beginning of the Output operation. */
+  (void)IIO_GetCursorPosition(filp->MyFD, &This->InitialXY.Column, &This->InitialXY.Row);
+  This->CurrentXY.Column  = This->InitialXY.Column;
+  This->CurrentXY.Row     = This->InitialXY.Row;
+
+  NumConsumed = 0;
+  OutChar[0]  = (wchar_t)buf[0];
+  while((OutChar[0] != 0) && (NumConsumed < N)) {
+    CharLen = mbrtowc(OutChar, (const char *)&buf[NumConsumed], MB_CUR_MAX, OutState);
+    if (CharLen < 0) {  // Encoding Error
+      OutChar[0] = BLOCKELEMENT_LIGHT_SHADE;
+      CharLen = 1;  // Consume a byte
+      (void)mbrtowc(NULL, NULL, 1, OutState);  // Re-Initialize the conversion state
     }
-    else {
-      OutBuf = This->OutBuf;
-      OutState  = &This->OutState;
+
+    NumProc = IIO_WriteOne(filp, OutBuf, OutChar[0]);
+    if(NumProc >= 0) {
+      // Successfully processed and buffered one character
+      NumConsumed += CharLen;   // Index of start of next character
+    } else {
+      if (errno == ENOSPC) {
+        // Not enough room in OutBuf to hold a potentially expanded character
+        break;
+      }
+      return -1;    // Something corrupted and filp->devdata is now NULL
     }
+  }
 
-    /*  Set the maximum screen dimensions. */
-    This->MaxColumn = MaxColumn;
-    This->MaxRow    = MaxRow;
+  // At this point, the characters to write are in OutBuf
+  // First, linearize the buffer
+  NumProc = OutBuf->Copy(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
+  gMD->UString[NumProc] = 0;   // Ensure that the buffer is terminated
 
-    /*  Record where the cursor is at the beginning of the Output operation. */
-    (void)IIO_GetCursorPosition(filp->MyFD, &This->InitialXY.Column, &This->InitialXY.Row);
-    This->CurrentXY.Column  = This->InitialXY.Column;
-    This->CurrentXY.Row     = This->InitialXY.Row;
-
-    NumConsumed = 0;
-    OutChar[0]  = (wchar_t)buf[0];
-    while((OutChar[0] != 0) && (NumConsumed < N)) {
-      CharLen = mbrtowc(OutChar, (const char *)&buf[NumConsumed], MB_CUR_MAX, OutState);
-      if (CharLen < 0) {  // Encoding Error
-        OutChar[0] = BLOCKELEMENT_LIGHT_SHADE;
-        CharLen = 1;  // Consume a byte
-        (void)mbrtowc(NULL, NULL, 1, OutState);  // Re-Initialize the conversion state
-      }
-      NumProc = IIO_WriteOne(filp, OutBuf, OutChar[0]);
-      if(NumProc >= 0) {
-        // Successfully processed and buffered one character
-        NumConsumed += CharLen;   // Index of start of next character
-      }
-      else {
-        if (errno == ENOSPC) {
-          // Not enough room in OutBuf to hold a potentially expanded character
-          break;
-        }
-        return -1;    // Something corrupted and filp->devdata is now NULL
-      }
-    }
-    // At this point, the characters to write are in OutBuf
-    // First, linearize the buffer
-    NumProc = OutBuf->Copy(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
-    gMD->UString[NumProc] = 0;   // Ensure that the buffer is terminated
-
+  if (NumProc != 0) {
     if(filp->f_iflags & _S_IWTTY) {
       // Output device expects wide characters, Output what we have
       NumProc = filp->f_ops->fo_write(filp, NULL, NumProc, gMD->UString);
 
       // Consume the output characters
       W_INSTRUMENT OutBuf->Flush(OutBuf, NumProc);
-    }
-    else {
+    } else {
       // Output device expects narrow characters, convert to MBCS
       MbcsPtr = (char *)gMD->UString2;
       // Determine the needed space. NumProc is the number of bytes needed.
-      NumProc = (ssize_t)EstimateWtoM((const wchar_t *)gMD->UString, UNICODE_STRING_MAX * sizeof(wchar_t), &CharLen);
+      NumProc = (ssize_t)EstimateWtoM((const wchar_t *)gMD->UString,
+                                      UNICODE_STRING_MAX * sizeof(wchar_t), &CharLen);
 
       // Now translate this into MBCS in the buffer pointed to by MbcsPtr.
       // The returned value, NumProc, is the resulting number of bytes.
@@ -254,12 +267,7 @@ IIO_Write(
       W_INSTRUMENT OutBuf->Flush(OutBuf, CharLen);
     }
   }
-  else {
-    if(This == NULL) {
-      errno = EINVAL;
-    }
-    // Otherwise, errno is already set.
-  }
+
   return NumConsumed;
 }
 
@@ -286,43 +294,52 @@ IIO_Echo(
   ssize_t   NumWritten;
   cFIFO    *OutBuf;
   char     *MbcsPtr;
-  ssize_t   NumProc;
   tcflag_t  LFlags;
 
   NumWritten = -1;
   This = filp->devdata;
-  if(This != NULL) {
-    OutBuf = This->OutBuf;
-    LFlags = This->Termio.c_lflag & (ECHOK | ECHOE);
 
-    if((EChar >= TtyFunKeyMin) && (EChar < TtyFunKeyMax)) {
-      // A special function key was pressed, buffer it, don't echo, and activate.
-      // Process and buffer the character.  May produce multiple characters.
-      NumProc = IIO_EchoOne(filp, EChar, FALSE);    // Don't echo this character
-      EChar   = CHAR_LINEFEED;                      // Every line must end with '\n' (legacy)
-    }
+  if (This == NULL) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  OutBuf = This->OutBuf;
+  LFlags = This->Termio.c_lflag & (ECHOK | ECHOE);
+
+  if((EChar >= TtyFunKeyMin) && (EChar < TtyFunKeyMax)) {
+    // A special function key was pressed, buffer it, don't echo, and activate.
     // Process and buffer the character.  May produce multiple characters.
-    NumProc = IIO_EchoOne(filp, EChar, EchoIsOK);
+    IIO_EchoOne(filp, EChar, FALSE); // Don't echo this character
+    EChar   = CHAR_LINEFEED;         // Every line must end with '\n' (legacy)
+  }
 
-    // At this point, the character(s) to write are in OutBuf
-    // First, linearize the buffer
-    NumWritten = OutBuf->Copy(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
-    gMD->UString[NumWritten] = 0;   // Ensure that the buffer is terminated
+  // Process and buffer the character.  May produce multiple characters.
+  IIO_EchoOne(filp, EChar, EchoIsOK);
 
-    if((EChar == IIO_ECHO_KILL) && (LFlags & ECHOE) && EchoIsOK) {
-      // Position the cursor to the start of input.
-      (void)IIO_SetCursorPosition(filp, &This->InitialXY);
-    }
+  // At this point, the character(s) to write are in OutBuf
+  // First, linearize the buffer
+  NumWritten = OutBuf->Copy(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
+  gMD->UString[NumWritten] = 0;   // Ensure that the buffer is terminated
+
+  if((EChar == IIO_ECHO_KILL) && (LFlags & ECHOE) && EchoIsOK) {
+    // Position the cursor to the start of input.
+    (void)IIO_SetCursorPosition(filp, &This->InitialXY);
+  }
+
+  if (NumWritten) {
     // Output the buffer
     if(filp->f_iflags & _S_IWTTY) {
       // Output device expects wide characters, Output what we have
       NumWritten = filp->f_ops->fo_write(filp, NULL, NumWritten, gMD->UString);
-    }
-    else {
+    } else {
+      ssize_t NumProc;
+
       // Output device expects narrow characters, convert to MBCS
       MbcsPtr = (char *)gMD->UString2;
       // Determine the needed space
-      NumProc = (ssize_t)EstimateWtoM((const wchar_t *)gMD->UString, UNICODE_STRING_MAX * sizeof(wchar_t), NULL);
+      NumProc = (ssize_t)EstimateWtoM((const wchar_t *)gMD->UString,
+                                      UNICODE_STRING_MAX * sizeof(wchar_t), NULL);
 
       // Now translate this into MBCS in Buffer
       NumWritten = wcstombs(MbcsPtr, (const wchar_t *)gMD->UString, NumProc);
@@ -331,22 +348,20 @@ IIO_Echo(
       // Send the MBCS buffer to Output
       NumWritten = filp->f_ops->fo_write(filp, NULL, NumWritten, MbcsPtr);
     }
+
     // Consume the echoed characters
     (void)OutBuf->Flush(OutBuf, NumWritten);
-
-    if(EChar == IIO_ECHO_KILL) {
-      if(LFlags == ECHOK) {
-        NumWritten = IIO_WriteOne(filp, OutBuf, CHAR_LINEFEED);
-      }
-      else if((LFlags & ECHOE) && EchoIsOK) {
-        // Position the cursor to the start of input.
-        (void)IIO_SetCursorPosition(filp, &This->InitialXY);
-      }
-      NumWritten = 0;
-    }
   }
-  else {
-    errno = EINVAL;
+
+  if(EChar == IIO_ECHO_KILL) {
+    if(LFlags == ECHOK) {
+      NumWritten = IIO_WriteOne(filp, OutBuf, CHAR_LINEFEED);
+    } else if((LFlags & ECHOE) && EchoIsOK) {
+      // Position the cursor to the start of input.
+      (void)IIO_SetCursorPosition(filp, &This->InitialXY);
+    }
+
+    NumWritten = 0;
   }
 
   return NumWritten;
@@ -424,10 +439,10 @@ New_cIIO(void)
     TempBuf[VTIME]        = 0;
     IIO->Termio.c_ispeed  = B115200;
     IIO->Termio.c_ospeed  = B115200;
-    IIO->Termio.c_iflag   = ICRNL;
-    IIO->Termio.c_oflag   = OPOST | ONLCR | ONOCR | ONLRET;
+    IIO->Termio.c_iflag   = 0;
+    IIO->Termio.c_oflag   = 0;
     IIO->Termio.c_cflag   = 0;
-    IIO->Termio.c_lflag   = ECHO | ECHONL;
+    IIO->Termio.c_lflag   = 0;
   }
   return IIO;
 }

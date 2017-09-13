@@ -26,10 +26,10 @@
 #include  <Library/MemoryAllocationLib.h>
 #include  <Library/UefiBootServicesTableLib.h>
 #include  <Library/DebugLib.h>
+#include  <Library/ShellLib.h>
 #include  <Protocol/SimpleTextIn.h>
 #include  <Protocol/SimpleTextOut.h>
-#include  <Protocol/GraphicsOutput.h>
-#include  <Protocol/UgaDraw.h>
+#include  <Protocol/UnicodeCollation.h>
 #include  <LibConfig.h>
 
 #include  <errno.h>
@@ -55,6 +55,16 @@ static const int stdioFlags[NUM_SPECIAL] = {
   O_WRONLY,             // stdout
   O_WRONLY              // stderr
 };
+
+static SHELL_FILE_HANDLE ShellHandles[NUM_SPECIAL];
+
+typedef enum {
+  SH_HNDL_CON,
+  SH_HDNL_FILE,
+  SH_HNDL_PIPE
+} SH_HNDL_TYPE;
+
+static SH_HNDL_TYPE ShellHandleTypes[NUM_SPECIAL];
 
 static DeviceNode    *ConNode[NUM_SPECIAL];
 static ConInstance   *ConInstanceList;
@@ -107,6 +117,30 @@ WideTtyCvt( CHAR16 *dest, const char *buf, ssize_t n, mbstate_t *Cs)
   return i;
 }
 
+/**
+  Remove the unicode file tag from the begining of the file buffer.
+
+  Regardless of what read (console, redirected file or pipe), the input
+  is UTF16, so this is always valid.
+
+  @param[in]  Handle    Handle to process.
+**/
+static void
+RemoveFileTag(
+  IN SHELL_FILE_HANDLE Handle
+  )
+{
+  UINTN             CharSize;
+  CHAR16            CharBuffer;
+
+  CharSize    = sizeof(CHAR16);
+  CharBuffer  = 0;
+  ShellReadFile(Handle, &CharSize, &CharBuffer);
+  if (CharBuffer != EFI_UNICODE_BYTE_ORDER_MARK) {
+    ShellSetFilePosition(Handle, 0);
+  }
+}
+
 /** Position the console cursor to the coordinates specified by Position.
 
     @param[in]  filp      Pointer to the file descriptor structure for this file.
@@ -128,8 +162,6 @@ da_ConSeek(
 )
 {
   ConInstance                       *Stream;
-  EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL   *Proto;
-  XY_OFFSET                          CursorPos;
 
   Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
   // Quick check to see if Stream looks reasonable
@@ -145,20 +177,28 @@ da_ConSeek(
     return -1;
   }
   // Everything is OK to do the final verification and "seek".
-  Proto = (EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *)Stream->Dev;
-  CursorPos.Offset = Position;
 
-  EFIerrno = Proto->SetCursorPosition(Proto,
-                                      (INTN)CursorPos.XYpos.Column,
-                                      (INTN)CursorPos.XYpos.Row);
+  if (ShellHandleTypes[Stream->InstanceNum] != SH_HNDL_CON) {
+    EFIerrno = ShellSetFilePosition(ShellHandles[Stream->InstanceNum],
+                                    Position);
+  } else {
+    EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *Proto;
+    XY_OFFSET                       CursorPos;
+
+    Proto = (EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *)Stream->Dev;
+    CursorPos.Offset = Position;
+
+    EFIerrno = Proto->SetCursorPosition(Proto,
+                                        (INTN)CursorPos.XYpos.Column,
+                                        (INTN)CursorPos.XYpos.Row);
+  }
 
   if(RETURN_ERROR(EFIerrno)) {
     errno = EINVAL;
     return -1;
   }
-  else {
-    return Position;
-  }
+
+  return Position;
 }
 
 /* Write a NULL terminated WCS to the EFI console.
@@ -190,33 +230,53 @@ da_ConWrite(
 
   NumChar = -1;
   Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
+
   // Quick check to see if Stream looks reasonable
   if(Stream->Cookie != CON_COOKIE) {    // Cookie == 'IoAb'
     EFIerrno = RETURN_INVALID_PARAMETER;
     errno = EINVAL;
     return -1;    // Looks like a bad This pointer
   }
+
   if(Stream->InstanceNum == STDIN_FILENO) {
     // Write is not valid for stdin
     EFIerrno = RETURN_UNSUPPORTED;
     errno = EIO;
     return -1;
   }
+
+  if (BufferSize == 0) {
+    return 0;
+  }
+
   // Everything is OK to do the write.
   Proto = (EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *)Stream->Dev;
 
   Status = EFI_SUCCESS;
-  if(Position != NULL) {
-    CursorPos.Offset = *Position;
+  if (ShellHandleTypes[Stream->InstanceNum] != SH_HNDL_CON) {
+    if (Position != NULL) {
+      Status = ShellSetFilePosition(ShellHandles[Stream->InstanceNum],
+                                    *Position);
+    }
 
-    Status = Proto->SetCursorPosition(Proto,
-                                      (INTN)CursorPos.XYpos.Column,
-                                      (INTN)CursorPos.XYpos.Row);
+    if(!RETURN_ERROR(Status)) {
+      UINTN BufSize = BufferSize * sizeof(wchar_t);
+      Status = ShellWriteFile(ShellHandles[Stream->InstanceNum],
+                              (UINTN *) &BufSize, (void *) Buffer);
+    }
+  } else {
+    if(Position != NULL) {
+      CursorPos.Offset = *Position;
 
-  }
-  if(!RETURN_ERROR(Status)) {
-  // Send the Unicode buffer to the console
-    Status = Proto->OutputString( Proto, (CHAR16 *)Buffer);
+      Status = Proto->SetCursorPosition(Proto,
+                                        (INTN)CursorPos.XYpos.Column,
+                                        (INTN)CursorPos.XYpos.Row);
+    }
+
+    if(!RETURN_ERROR(Status)) {
+      // Send the Unicode buffer to the console
+      Status = Proto->OutputString( Proto, (CHAR16 *)Buffer);
+    }
   }
 
   // Depending on status, update BufferSize and return
@@ -231,22 +291,20 @@ da_ConWrite(
      */
     errno = EIO;
   }
+
   EFIerrno = Status;      // Make error reason available to caller
   return NumChar;
 }
 
 /** Read a wide character from the console input device.
 
-    Returns NUL or a translated input character.
-
     @param[in]      filp          Pointer to file descriptor for this file.
     @param[out]     Buffer        Buffer in which to place the read character.
 
     @retval    EFI_DEVICE_ERROR   A hardware error has occurred.
     @retval    EFI_NOT_READY      No data is available.  Try again later.
+    @retval    EFI_END_OF_FILE    No more data is available.
     @retval    EFI_SUCCESS        One wide character has been placed in Character
-                                    - 0x0000  NUL, ignore this
-                                    - Otherwise, should be a good wide character in Character
 **/
 static
 EFI_STATUS
@@ -255,55 +313,67 @@ da_ConRawRead (
      OUT  wchar_t            *Character
 )
 {
-  EFI_SIMPLE_TEXT_INPUT_PROTOCOL   *Proto;
   ConInstance                      *Stream;
   cIIO                             *Self;
   EFI_STATUS                        Status;
-  EFI_INPUT_KEY                     Key = {0,0};
-  wchar_t                           RetChar;
 
   Self    = (cIIO *)filp->devdata;
   Stream  = BASE_CR(filp->f_ops, ConInstance, Abstraction);
-  Proto   = (EFI_SIMPLE_TEXT_INPUT_PROTOCOL *)Stream->Dev;
 
   ASSERT(Stream->InstanceNum == STDIN_FILENO);
 
-  if(Stream->UnGetKey == CHAR_NULL) {
-    Status = Proto->ReadKeyStroke(Proto, &Key);
-  }
-  else {
-    Status  = EFI_SUCCESS;
-    // Use the data in the Un-get buffer
-    // Guaranteed that ScanCode and UnicodeChar are not both NUL
-    Key.ScanCode        = SCAN_NULL;
-    Key.UnicodeChar     = Stream->UnGetKey;
-    Stream->UnGetKey    = CHAR_NULL;
-  }
-  if(Status == EFI_SUCCESS) {
+  if (ShellHandleTypes[Stream->InstanceNum] != SH_HNDL_CON) {
+    UINT64 Pos;
+    ssize_t BufSize = sizeof(*Character);
+
+    ShellGetFilePosition(ShellHandles[Stream->InstanceNum], &Pos);
+    Status = ShellReadFile(ShellHandles[Stream->InstanceNum],
+                           (UINTN *) &BufSize, Character);
+    if (BufSize == 0) {
+      Status = EFI_END_OF_FILE;
+    }
+
+    return Status;
+  } else {
+    wchar_t                           RetChar;
+    EFI_INPUT_KEY                     Key = {0,0};
+    EFI_SIMPLE_TEXT_INPUT_PROTOCOL *Proto = (EFI_SIMPLE_TEXT_INPUT_PROTOCOL *)Stream->Dev;
+
+    if(Stream->UnGetKey == CHAR_NULL) {
+      Status = Proto->ReadKeyStroke(Proto, &Key);
+    } else {
+      Status  = EFI_SUCCESS;
+      // Use the data in the Un-get buffer
+      // Guaranteed that ScanCode and UnicodeChar are not both NUL
+      Key.ScanCode        = SCAN_NULL;
+      Key.UnicodeChar     = Stream->UnGetKey;
+      Stream->UnGetKey    = CHAR_NULL;
+    }
+
+    if (Status != EFI_SUCCESS) {
+      return Status;
+    }
+
     // Translate the Escape Scan Code to an ESC character
     if (Key.ScanCode != 0) {
       if (Key.ScanCode == SCAN_ESC) {
         RetChar = CHAR_ESC;
-      }
-      else if((Self->Termio.c_iflag & IGNSPEC) != 0) {
-        // If we are ignoring special characters, return a NUL
-        RetChar = 0;
-      }
-      else {
+      } else if ((Self->Termio.c_iflag & IGNSPEC) != 0) {
+        // If we are ignoring special characters, pretend this key didn't happen.
+        return EFI_NOT_READY;
+      } else {
         // Must be a control, function, or other non-printable key.
         // Map it into the Platform portion of the Unicode private use area
         RetChar = TtyFunKeyMax - Key.ScanCode;
       }
-    }
-    else {
+    } else {
       RetChar = Key.UnicodeChar;
     }
+
     *Character = RetChar;
   }
-  else {
-    *Character = 0;
-  }
-  return Status;
+
+  return EFI_SUCCESS;
 }
 
 /** Read a wide character from the console input device.
@@ -340,11 +410,8 @@ da_ConRead(
   //cIIO                              *Self;
   EFI_STATUS                        Status;
   UINTN                             Edex;
-  ssize_t                           NumRead;
   BOOLEAN                           BlockingMode;
   wchar_t                           RetChar;
-
-  NumRead = -1;
 
   Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
   if(Stream->InstanceNum != STDIN_FILENO) {
@@ -355,55 +422,49 @@ da_ConRead(
   }
 
   if(BufferSize < sizeof(wchar_t)) {
-    errno = EINVAL;     // Buffer is too small to hold one character
+    errno = EINVAL; // Buffer is too small to hold one character
+    return -1;
   }
-  else {
-    Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
-    Proto = (EFI_SIMPLE_TEXT_INPUT_PROTOCOL *)Stream->Dev;
-    BlockingMode = (BOOLEAN)((filp->Oflags & O_NONBLOCK) == 0);
 
-    do {
-      Status = EFI_SUCCESS;
-      if(BlockingMode) {
-        // Read a byte in Blocking mode
-        Status = gBS->WaitForEvent( 1, &Proto->WaitForKey, &Edex);
-      }
+  Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
+  Proto = (EFI_SIMPLE_TEXT_INPUT_PROTOCOL *)Stream->Dev;
+  BlockingMode = (BOOLEAN)((filp->Oflags & O_NONBLOCK) == 0);
 
-      /*  WaitForEvent should not be able to fail since
-            NumberOfEvents is set to constant 1 so is never 0
-            Event is set by the Simple Text Input protocol so should never be EVT_NOTIFY_SIGNAL
-            Current TPL should be TPL_APPLICATION.
-          ASSERT so that we catch any problems during development.
-      */
-      ASSERT(Status == EFI_SUCCESS);
+  if (ShellHandleTypes[Stream->InstanceNum] != SH_HNDL_CON) {
+    /*
+     * ShellLib file interfaces have no notion of waiting on data.
+     * Data is either available, or da_ConRawRead returns EFI_END_OF_FILE.
+     */
+    BlockingMode = FALSE;
+  }
 
-      Status = da_ConRawRead (filp, &RetChar);
-    } while ( BlockingMode &&
-             (RetChar == 0) &&
-             (Status != EFI_DEVICE_ERROR));
+  do {
+    Status = da_ConRawRead(filp, &RetChar);
 
+    if (Status == EFI_NOT_READY && BlockingMode) {
+      ASSERT(ShellHandleTypes[Stream->InstanceNum] == SH_HNDL_CON);
+      gBS->WaitForEvent(1, &Proto->WaitForKey, &Edex);
+      continue;
+    }
+
+    break;
+  } while (1);
+
+  switch (Status) {
+  case EFI_SUCCESS:
+    *((wchar_t *)Buffer) = RetChar;
+    return 1;
+  case EFI_NOT_READY:
+    errno = EAGAIN;
     EFIerrno = Status;
-    if(Status == EFI_SUCCESS) {
-      // Got a keystroke.
-      NumRead = 1;   // Indicate that Key holds the data
-    }
-    else if(Status == EFI_NOT_READY) {
-      // Keystroke data is not available
-      errno = EAGAIN;
-    }
-    else {
-      // Hardware error
-      errno = EIO;
-    }
-    if (RetChar == 0) {
-      NumRead = -1;
-      errno = EAGAIN;
-    }
-    else {
-      *((wchar_t *)Buffer) = RetChar;
-    }
+    return -1;
+  case EFI_END_OF_FILE:
+    return 0;
   }
-  return NumRead;
+
+  errno = EIO;
+  EFIerrno = Status;
+  return -1;
 }
 
 /** Console-specific helper function for the fstat() function.
@@ -433,11 +494,6 @@ da_ConStat(
   )
 {
   ConInstance                        *Stream;
-  EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL    *Proto;
-  XY_OFFSET                           CursorPos;
-  INT32                               OutMode;
-  UINTN                               ModeCol;
-  UINTN                               ModeRow;
 
 // ConGetInfo
   Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
@@ -455,7 +511,7 @@ da_ConStat(
   Buffer->st_birthtime = time(NULL);
   Buffer->st_atime = Buffer->st_mtime = Buffer->st_birthtime;
 
-// ConGetPosition
+  // ConGetPosition
   if(Stream->InstanceNum == STDIN_FILENO) {
     // This is stdin
     Buffer->st_curpos    = 0;
@@ -463,22 +519,36 @@ da_ConStat(
     Buffer->st_physsize  = 1;
     Buffer->st_mode |= READ_PERMS;
   } else {
-    Proto = (EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *)Stream->Dev;
-    CursorPos.XYpos.Column  = (UINT32)Proto->Mode->CursorColumn;
-    CursorPos.XYpos.Row     = (UINT32)Proto->Mode->CursorRow;
-    Buffer->st_curpos       = (off_t)CursorPos.Offset;
-    Buffer->st_size         = (off_t)Stream->NumWritten;
+    Buffer->st_size = (off_t)Stream->NumWritten;
     Buffer->st_mode |= WRITE_PERMS;
 
-    OutMode  = Proto->Mode->Mode;
-    EFIerrno = Proto->QueryMode(Proto, (UINTN)OutMode, &ModeCol, &ModeRow);
-    if(RETURN_ERROR(EFIerrno)) {
-      Buffer->st_physsize = 0;
-    }
-    else {
-      CursorPos.XYpos.Column  = (UINT32)ModeCol;
-      CursorPos.XYpos.Row     = (UINT32)ModeRow;
-      Buffer->st_physsize     = (off_t)CursorPos.Offset;
+    if (ShellHandleTypes[Stream->InstanceNum] != SH_HNDL_CON) {
+      UINT64 Pos = 0;
+
+      ShellGetFilePosition(ShellHandles[Stream->InstanceNum], &Pos);
+      Buffer->st_curpos  = (off_t)Pos;
+      Buffer->st_physsize = 1;
+    } else {
+      EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL    *Proto;
+      XY_OFFSET                           CursorPos;
+      INT32                               OutMode;
+      UINTN                               ModeCol;
+      UINTN                               ModeRow;
+
+      Proto = (EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *)Stream->Dev;
+      CursorPos.XYpos.Column  = (UINT32)Proto->Mode->CursorColumn;
+      CursorPos.XYpos.Row     = (UINT32)Proto->Mode->CursorRow;
+      Buffer->st_curpos       = (off_t)CursorPos.Offset;
+
+      OutMode  = Proto->Mode->Mode;
+      EFIerrno = Proto->QueryMode(Proto, (UINTN)OutMode, &ModeCol, &ModeRow);
+      if(RETURN_ERROR(EFIerrno)) {
+        Buffer->st_physsize = 0;
+      } else {
+        CursorPos.XYpos.Column  = (UINT32)ModeCol;
+        CursorPos.XYpos.Row     = (UINT32)ModeRow;
+        Buffer->st_physsize     = (off_t)CursorPos.Offset;
+      }
     }
   }
   return 0;
@@ -503,6 +573,27 @@ da_ConIoctl(
 {
   errno   = ENODEV;
   return  -1;
+}
+
+STATIC SH_HNDL_TYPE
+ShellHandleType(
+  IN SHELL_FILE_HANDLE Handle
+)
+{
+  UINT64 Pos;
+  EFI_FILE_INFO *FileInfo;
+
+  FileInfo = ShellGetFileInfo(Handle);
+  if (FileInfo != NULL) {
+    FreePool(FileInfo);
+    return SH_HDNL_FILE;
+  }
+
+  if (ShellGetFilePosition(Handle, &Pos) == EFI_SUCCESS) {
+    return SH_HNDL_PIPE;
+  }
+
+  return SH_HNDL_CON;
 }
 
 /** Open an abstract Console Device.
@@ -530,31 +621,47 @@ da_ConOpen(
   ConInstance    *Stream;
   UINT32          Instance;
   int             RetVal = -1;
+  struct termios *Termio;
 
-  if((filp    != NULL)    &&
-      (DevNode != NULL))
-  {
+  if (filp == NULL || DevNode == NULL) {
+    goto out;
+  }
+
   Stream = (ConInstance *)DevNode->InstanceList;
-  // Quick check to see if Stream looks reasonable
-    if(Stream->Cookie == CON_COOKIE)
-    {
-      Instance = Stream->InstanceNum;
-      if(Instance < NUM_SPECIAL) {
-        gMD->StdIo[Instance] = Stream;
-        filp->f_iflags |= (_S_IFCHR | _S_ITTY | _S_IWTTY | _S_ICONSOLE);
-        filp->f_offset = 0;
-        filp->f_ops = &Stream->Abstraction;
-        filp->devdata = (void *)IIO;
-        RetVal = 0;
+  if (Stream->Cookie != CON_COOKIE) {
+    goto out;
+  }
+
+  Termio = &IIO->Termio;
+  Instance = Stream->InstanceNum;
+  if(Instance < NUM_SPECIAL) {
+    gMD->StdIo[Instance] = Stream;
+    filp->f_iflags |= (_S_IFCHR | _S_ITTY | _S_IWTTY | _S_ICONSOLE);
+    filp->f_offset = 0;
+    filp->f_ops = &Stream->Abstraction;
+    filp->devdata = (void *)IIO;
+    RetVal = 0;
+
+    if((filp->Oflags & O_TTY_INIT) != 0) {
+      if (ShellHandleTypes[Instance] == SH_HNDL_CON) {
+        if (Instance == STDIN_FILENO) {
+          Termio->c_iflag |= ICRNL | IGNSPEC;
+          Termio->c_lflag |= ICANON;
+        } else {
+          Termio->c_lflag |= ECHO | ECHOE | ECHONL;
+          Termio->c_oflag |= OPOST | ONLCR | OXTABS | ONOEOT | ONOCR | ONLRET | OCTRL;
+        }
       }
     }
   }
+
+ out:
   if (RetVal < 0) {
     EFIerrno = RETURN_INVALID_PARAMETER;
     errno = EINVAL;
   }
-  return RetVal;
 
+  return RetVal;
 }
 
 /** Flush a console device's IIO buffers.
@@ -582,39 +689,39 @@ da_ConFlush(
   ssize_t     NumProc;
   int         Flags;
 
+  if(filp->MyFD == STDERR_FILENO) {
+    OutBuf = IIO->ErrBuf;
+  } else {
+    OutBuf = IIO->OutBuf;
+  }
 
-    if(filp->MyFD == STDERR_FILENO) {
-      OutBuf = IIO->ErrBuf;
-    }
-    else {
-      OutBuf = IIO->OutBuf;
-    }
+  Flags = filp->Oflags & O_ACCMODE;   // Get the device's open mode
+  if (Flags != O_WRONLY)  {   // (Flags == O_RDONLY) || (Flags == O_RDWR)
+    // Readable so discard the contents of the input buffer
+    IIO->InBuf->Flush(IIO->InBuf, UNICODE_STRING_MAX);
+  }
 
-    Flags = filp->Oflags & O_ACCMODE;   // Get the device's open mode
-    if (Flags != O_WRONLY)  {   // (Flags == O_RDONLY) || (Flags == O_RDWR)
-      // Readable so discard the contents of the input buffer
-      IIO->InBuf->Flush(IIO->InBuf, UNICODE_STRING_MAX);
-    }
-    if (Flags != O_RDONLY)  {   // (Flags == O_WRONLY) || (Flags == O_RDWR)
-      // Writable so flush the output buffer
-      // At this point, the characters to write are in OutBuf
-      // First, linearize and consume the buffer
-      NumProc = OutBuf->Read(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
-      if (NumProc > 0) {  // Optimization -- Nothing to do if no characters
-        gMD->UString[NumProc] = 0;   // Ensure that the buffer is terminated
+  if (Flags != O_RDONLY)  {   // (Flags == O_WRONLY) || (Flags == O_RDWR)
+    // Writable so flush the output buffer
+    // At this point, the characters to write are in OutBuf
+    // First, linearize and consume the buffer
+    NumProc = OutBuf->Read(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
+    if (NumProc > 0) {  // Optimization -- Nothing to do if no characters
+      gMD->UString[NumProc] = 0;   // Ensure that the buffer is terminated
 
-        /*  OutBuf always contains wide characters.
-            The UEFI Console (this device) always expects wide characters.
-            There is no need to handle devices that expect narrow characters
-            like the device-independent functions do.
-        */
-        // Do the actual write of the data to the console
-        (void) da_ConWrite(filp, NULL, NumProc, gMD->UString);
-        // Paranoia -- Make absolutely sure that OutBuf is empty in case fo_write
-        // wasn't able to consume everything.
-        OutBuf->Flush(OutBuf, UNICODE_STRING_MAX);
-      }
+      /*  OutBuf always contains wide characters.
+          The UEFI Console (this device) always expects wide characters.
+          There is no need to handle devices that expect narrow characters
+          like the device-independent functions do.
+      */
+      // Do the actual write of the data to the console
+      (void) da_ConWrite(filp, NULL, NumProc, gMD->UString);
+      // Paranoia -- Make absolutely sure that OutBuf is empty in case fo_write
+      // wasn't able to consume everything.
+      OutBuf->Flush(OutBuf, UNICODE_STRING_MAX);
     }
+  }
+
   return 0;
 }
 
@@ -694,54 +801,33 @@ da_ConPoll(
     EFIerrno = RETURN_INVALID_PARAMETER;
     return POLLNVAL;    // Looks like a bad filp pointer
   }
+
   if(Stream->InstanceNum == STDIN_FILENO) {
     // STDIN: Only input is supported for this device
-    Status = da_ConRawRead (filp, &Stream->UnGetKey);
-    if(Status == RETURN_SUCCESS) {
-      RdyMask = POLLIN;
-      if ((Stream->UnGetKey <  TtyFunKeyMin)   ||
-          (Stream->UnGetKey >= TtyFunKeyMax))
-      {
-        RdyMask |= POLLRDNORM;
+
+    if (ShellHandleTypes[Stream->InstanceNum] != SH_HNDL_CON) {
+      RdyMask = POLLIN | POLLRDNORM;
+    } else {
+      Status = da_ConRawRead (filp, &Stream->UnGetKey);
+      if(Status == RETURN_SUCCESS) {
+        RdyMask = POLLIN;
+        if ((Stream->UnGetKey <  TtyFunKeyMin)   ||
+            (Stream->UnGetKey >= TtyFunKeyMax)) {
+          RdyMask |= POLLRDNORM;
+        }
+      } else {
+        Stream->UnGetKey  = CHAR_NULL;
       }
     }
-    else {
-      Stream->UnGetKey  = CHAR_NULL;
-    }
-  }
-  else if(Stream->InstanceNum < NUM_SPECIAL) {  // Not 0, is it 1 or 2?
+  } else if(Stream->InstanceNum < NUM_SPECIAL) {  // Not 0, is it 1 or 2?
     // (STDOUT || STDERR): Only output is supported for this device
     RdyMask = POLLOUT;
-  }
-  else {
+  } else {
     RdyMask = POLLERR;    // Not one of the standard streams
   }
   EFIerrno = Status;
 
   return (RdyMask & (events | POLL_RETONLY));
-}
-
-STATIC BOOLEAN
-HandleIsGraphics(
-  IN EFI_HANDLE Handle
-)
-{
-  EFI_STATUS Status;
-  VOID **Proto;
-
-  Status = gBS->HandleProtocol (Handle,  &gEfiGraphicsOutputProtocolGuid,
-                                (VOID **) &Proto);
-  if (!EFI_ERROR (Status)) {
-    return TRUE;
-  }
-
-  Status = gBS->HandleProtocol (Handle,  &gEfiUgaDrawProtocolGuid,
-                                (VOID **) &Proto);
-  if (!EFI_ERROR (Status)) {
-    return TRUE;
-  }
-
-  return FALSE;
 }
 
 /** Construct the Console stream devices: stdin, stdout, stderr.
@@ -759,87 +845,112 @@ __Cons_construct(
   ConInstance    *Stream;
   RETURN_STATUS   Status;
   int             i;
+  struct termios *Termio;
+  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
+
+  Status = gBS->HandleProtocol(ImageHandle, &gEfiShellParametersProtocolGuid,
+                               (VOID **) &ShellParameters);
+  if (Status != EFI_SUCCESS) {
+    return Status;
+  }
 
   Status = RETURN_OUT_OF_RESOURCES;
   ConInstanceList = (ConInstance *)AllocateZeroPool(NUM_SPECIAL * sizeof(ConInstance));
-  if(ConInstanceList != NULL) {
-    IIO = New_cIIO();
-    if(IIO == NULL) {
-      FreePool(ConInstanceList);
-    }
-    else {
-      Status = RETURN_SUCCESS;
-      for( i = 0; i < NUM_SPECIAL; ++i) {
-        // Get pointer to instance.
-        Stream = &ConInstanceList[i];
-
-        Stream->Cookie      = CON_COOKIE;
-        Stream->InstanceNum = i;
-        Stream->CharState.A = 0;    // Start in the initial state
-
-        switch(i) {
-          case STDIN_FILENO:
-            Stream->Dev = SystemTable->ConIn;
-            break;
-          case STDOUT_FILENO:
-            Stream->Dev = SystemTable->ConOut;
-            break;
-          case STDERR_FILENO:
-            if(SystemTable->StdErr == NULL) {
-              Stream->Dev = SystemTable->ConOut;
-            } else {
-              BOOLEAN outIsGraphics;
-              BOOLEAN errIsGraphics;
-
-              outIsGraphics = HandleIsGraphics(SystemTable->ConsoleOutHandle);
-              errIsGraphics = HandleIsGraphics(SystemTable->StandardErrorHandle);
-              if (outIsGraphics && !errIsGraphics) {
-                SystemTable->StdErr->OutputString(SystemTable->StdErr,
-                  L"ConOut is graphical and StdErr isn't: stderr redirected to ConOut\n");
-                Stream->Dev = SystemTable->ConOut;
-              } else {
-                Stream->Dev = SystemTable->StdErr;
-              }
-            }
-            break;
-          default:
-            return RETURN_VOLUME_CORRUPTED;     // This is a "should never happen" case.
-        }
-
-        Stream->Abstraction.fo_close    = &da_ConClose;
-        Stream->Abstraction.fo_read     = &da_ConRead;
-        Stream->Abstraction.fo_write    = &da_ConWrite;
-        Stream->Abstraction.fo_stat     = &da_ConStat;
-        Stream->Abstraction.fo_lseek    = &da_ConSeek;
-        Stream->Abstraction.fo_fcntl    = &fnullop_fcntl;
-        Stream->Abstraction.fo_ioctl    = &da_ConIoctl;
-        Stream->Abstraction.fo_poll     = &da_ConPoll;
-        Stream->Abstraction.fo_flush    = &da_ConFlush;
-        Stream->Abstraction.fo_delete   = &fbadop_delete;
-        Stream->Abstraction.fo_mkdir    = &fbadop_mkdir;
-        Stream->Abstraction.fo_rmdir    = &fbadop_rmdir;
-        Stream->Abstraction.fo_rename   = &fbadop_rename;
-
-        Stream->NumRead     = 0;
-        Stream->NumWritten  = 0;
-        Stream->UnGetKey    = CHAR_NULL;
-
-        if(Stream->Dev == NULL) {
-          continue;                 // No device for this stream.
-        }
-            ConNode[i] = __DevRegister(stdioNames[i], NULL, &da_ConOpen, Stream,
-                                       1, sizeof(ConInstance), stdioFlags[i]);
-        if(ConNode[i] == NULL) {
-              Status = EFIerrno;    // Grab error code that DevRegister produced.
-          break;
-        }
-        Stream->Parent = ConNode[i];
-      }
-      /* Initialize Ioctl flags until Ioctl is really implemented. */
-      TtyCooked = TRUE;
-      TtyEcho   = TRUE;
-    }
+  if(ConInstanceList == NULL) {
+    return Status;
   }
+
+  IIO = New_cIIO();
+  if(IIO == NULL) {
+    FreePool(ConInstanceList);
+    return Status;
+  }
+
+  Termio = &IIO->Termio;
+  Termio->c_cc[VERASE]  = 0x08;   // ^H Backspace
+  Termio->c_cc[VKILL]   = 0x15;   // ^U
+  Termio->c_cc[VINTR]   = 0x03;   // ^C Interrupt character
+  Termio->c_cc[VEOF]    = 0x04;   // ^D EOF
+
+  Status = RETURN_SUCCESS;
+  for( i = 0; i < NUM_SPECIAL; ++i) {
+    // Get pointer to instance.
+    Stream = &ConInstanceList[i];
+
+    Stream->Cookie      = CON_COOKIE;
+    Stream->InstanceNum = i;
+    Stream->CharState.A = 0;    // Start in the initial state
+
+    switch(i) {
+    case STDIN_FILENO:
+      Stream->Dev = SystemTable->ConIn;
+      ShellHandles[i] = ShellParameters->StdIn;
+      ShellHandleTypes[i] = ShellHandleType(ShellHandles[i]);
+      break;
+    case STDOUT_FILENO:
+      Stream->Dev = SystemTable->ConOut;
+      ShellHandles[i] = ShellParameters->StdOut;
+      ShellHandleTypes[i] = ShellHandleType(ShellHandles[i]);
+      break;
+    case STDERR_FILENO:
+      Stream->Dev = SystemTable->StdErr;
+      ShellHandles[i] = ShellParameters->StdErr;
+      ShellHandleTypes[i] = ShellHandleType(ShellHandles[i]);
+
+      if (SystemTable->StdErr == NULL ||
+          ShellHandleTypes[i] == SH_HNDL_CON) {
+        /*
+         * If we're not redirecting StdErr anywhere, use
+         * StdOut instead, to deal with systems where
+         * StdErr goes to serial or some other random
+         * black hole.
+         */
+        Stream->Dev = SystemTable->ConOut;
+        ShellHandles[i] = ShellParameters->StdOut;
+      }
+      break;
+    default:
+      return RETURN_VOLUME_CORRUPTED;     // This is a "should never happen" case.
+    }
+
+    if (ShellHandleTypes[i] != SH_HNDL_CON &&
+        i == STDIN_FILENO) {
+      RemoveFileTag(ShellHandles[i]);
+    }
+
+    Stream->Abstraction.fo_close    = &da_ConClose;
+    Stream->Abstraction.fo_read     = &da_ConRead;
+    Stream->Abstraction.fo_write    = &da_ConWrite;
+    Stream->Abstraction.fo_stat     = &da_ConStat;
+    Stream->Abstraction.fo_lseek    = &da_ConSeek;
+    Stream->Abstraction.fo_fcntl    = &fnullop_fcntl;
+    Stream->Abstraction.fo_ioctl    = &da_ConIoctl;
+    Stream->Abstraction.fo_poll     = &da_ConPoll;
+    Stream->Abstraction.fo_flush    = &da_ConFlush;
+    Stream->Abstraction.fo_delete   = &fbadop_delete;
+    Stream->Abstraction.fo_mkdir    = &fbadop_mkdir;
+    Stream->Abstraction.fo_rmdir    = &fbadop_rmdir;
+    Stream->Abstraction.fo_rename   = &fbadop_rename;
+
+    Stream->NumRead     = 0;
+    Stream->NumWritten  = 0;
+    Stream->UnGetKey    = CHAR_NULL;
+
+    if(Stream->Dev == NULL) {
+      continue;                 // No device for this stream.
+    }
+    ConNode[i] = __DevRegister(stdioNames[i], NULL, &da_ConOpen, Stream,
+                               1, sizeof(ConInstance), stdioFlags[i]);
+    if(ConNode[i] == NULL) {
+      Status = EFIerrno;    // Grab error code that DevRegister produced.
+      break;
+    }
+    Stream->Parent = ConNode[i];
+  }
+
+  /* Initialize Ioctl flags until Ioctl is really implemented. */
+  TtyCooked = TRUE;
+  TtyEcho   = TRUE;
   return  Status;
 }
 

@@ -46,9 +46,9 @@
   LibUefi
   LibIIO
   DevUtility
+  ShellLib
 
 [Protocols]
   gEfiSimpleTextInProtocolGuid        ## CONSUMED
   gEfiSimpleTextOutProtocolGuid       ## CONSUMED
-  gEfiGraphicsOutputProtocolGuid
-  gEfiUgaDrawProtocolGuid
+  gEfiShellParametersProtocolGuid

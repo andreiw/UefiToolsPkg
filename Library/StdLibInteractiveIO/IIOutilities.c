@@ -102,7 +102,6 @@ IIO_GetInChar (
     NumRead = filp->f_ops->fo_read(filp, &filp->f_offset, sizeof(wchar_t), &InChar);
   }
 
-  ASSERT(NumRead != 0);
   if(NumRead == 1) {
     /*
      * NumRead in this case is wchar count, not bytes. Ugh.

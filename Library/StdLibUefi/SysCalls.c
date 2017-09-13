@@ -664,7 +664,6 @@ open(
   wchar_t              *MPath;
   DeviceNode           *Node;
   struct __filedes     *filp;
-  struct termios       *Termio;
   int                   Instance  = 0;
   RETURN_STATUS         Status;
   UINT32                OpenMode;
@@ -706,18 +705,6 @@ open(
           OpenMode |= ( mode & S_ACC_WRITE ) ? S_ACC_WRITE : 0;
 
           filp->f_iflags |= OpenMode;
-
-          if((oflags & O_TTY_INIT) && (filp->f_iflags & _S_ITTY) && (filp->devdata != NULL)) {
-            // Initialize the device's termios flags to a "sane" value
-            Termio = &((cIIO *)filp->devdata)->Termio;
-            Termio->c_iflag = ICRNL | IGNSPEC;
-            Termio->c_oflag = OPOST | ONLCR | OXTABS | ONOEOT | ONOCR | ONLRET | OCTRL;
-            Termio->c_lflag = ECHO | ECHOE | ECHONL | ICANON;
-            Termio->c_cc[VERASE]  = 0x08;   // ^H Backspace
-            Termio->c_cc[VKILL]   = 0x15;   // ^U
-            Termio->c_cc[VINTR]   = 0x03;   // ^C Interrupt character
-            Termio->c_cc[VEOF]    = 0x04;   // ^D EOF
-          }
           ++filp->RefCount;
           FILE_SET_MATURE(filp);
         }
