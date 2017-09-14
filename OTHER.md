@@ -1,6 +1,8 @@
 Other UEFI Software
 ===================
 
+If it doesn't have sources, it doesn't exist ;-).
+
 * [Drivers](#drivers).
 * [Tools](#tools).
 * [Games](#games).
@@ -28,6 +30,8 @@ SLICloader | Patch ACPI tables with a SLIC table before boot | https://github.co
 efi-tpm2-utils | TPM 2.0 tools running in EFI environment | https://github.com/jiazhang0/efi-tpm2-utils
 Aclock | Aclock (https://github.com/tenox7/aclock) | https://github.com/claunia/aclock-efi
 uefigptdisk | GPT fdisk for UEFI | https://sourceforge.net/projects/uefigptfdisk/
+apple_set_os.efi | Convince Apple EFI you're booting OSX | https://github.com/0xbb/apple_set_os.efi
+efitools | Secure-boot related tools | https://git.kernel.org/pub/scm/linux/kernel/git/jejb/efitools.git
 
 ## Games
 
@@ -37,6 +41,10 @@ Pong-UEFI | Simple Pong | https://github.com/Openwide-Ingenierie/Pong-UEFI
 CHIP-8-UEFI | CHIP-8 emulator | https://github.com/Openwide-Ingenierie/CHIP-8-UEFI
 uefi-chip8 | CHIP-8 emulator | https://github.com/Reisse/uefi-chip8
 Tetris | Tetris for UEFI | https://github.com/swmicro/Tetris
+boot2flappy | Flappy Bird in x64 assembly | https://github.com/fabianishere/boot2flappy
+FlappyBirdy | Another Flappy Bird | https://github.com/hymen81/UEFI-Game-FlappyBirdy
+Zork | Zork via Frotz | http://www.codon.org.uk/~mjg59/uefi_zork/
+Maze | A maze game | https://github.com/liute62/Firmware-UEFI-Maze-Game
 
 ## Libraries
 
@@ -44,6 +52,7 @@ Name | Description | Where
 --- | --- | ---
 GreenThreads-UEFI | Sample green threads implementation | https://github.com/Openwide-Ingenierie/GreenThreads-UEFI
 LatchFirmware | Latch API (https://latch.elevenpaths.com) for UEFI | https://github.com/lordsergio/LatchFirmware
+EFI-Toolkit | Unmaintained set of pre-UEFI tools and libraries | https://github.com/tianocore/tianocore.github.io/wiki/EFI-Toolkit
 
 ## Development Tools
 
@@ -59,3 +68,6 @@ UEFI-Bootkit | A small bootkit which does not rely on x64 assembly | https://git
 Dreamboot | UEFI bootkit | https://github.com/quarkslab/dreamboot
 uefi-firmware-parser | Parse BIOS/Intel ME/UEFI firmware related structures: Volumes, FileSystems, Files, etc | https://github.com/theopolis/uefi-firmware-parser
 uefi-d | D bindings for UEFI specifications | https://github.com/kubasz/uefi-d
+efi-lipo.py | Split up Apple EFI fat binaries | https://github.com/snare/efitools
+ida-efiutils | EFI scripts for IDA Pro | https://github.com/snare/ida-efiutils
+efiguid | Juggle around with (U)EFI GUIDs | https://github.com/mazzoo/efiguid
