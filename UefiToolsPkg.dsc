@@ -106,6 +106,7 @@
   UefiToolsPkg/Applications/ShellPlatVars/ShellPlatVars.inf
   UefiToolsPkg/Applications/MemResv/MemResv.inf
   UefiToolsPkg/Applications/RangeIsMapped/RangeIsMapped.inf
+  UefiToolsPkg/Applications/GopTool/GopTool.inf
   UefiToolsPkg/Applications/ls/ls.inf
   UefiToolsPkg/Applications/stat/stat.inf
   UefiToolsPkg/Applications/cat/cat.inf

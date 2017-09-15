@@ -46,6 +46,7 @@ Name | Description
 [ShellPlatVars](#shellplatvars) | set UEFI Shell variables based on platform configuration
 [MemResv](#memresv) | create new memory map entries
 [RangeIsMapped](#rangeismapped) | validates ranges in the memory map
+[GopTool](#goptool) | Check and manipulate EFI_GRAPHICS_OUTPUT_PROTOCOL instances
 [tinycc](#tinycc) | port of TinyCC to UEFI
 
 ### FdtDump
@@ -167,6 +168,10 @@ This is meant to be used from a shell script. E.g.:
         load fs16:\PowerNV\IODA2HostBridge.efi
     endif
 
+    if x"%pvar-smbios-product-family%" eq x"Whatever This Is" then
+        echo I am running on Whatever
+    endif
+
 ### MemResv
 
 Allows creating memory map entries of type **reserved** or
@@ -207,6 +212,23 @@ With `-q`, the tool can be used quietly in a script.
     fs1:\> RangeIsMapped.efi -q 10540000 10001
     fs1:\> echo %lasterror%
     0xE
+
+### GopTool
+
+List and manipulate framebuffer information.
+
+    fs1:\> GopTool
+    0: EFI_HANDLE 0xBFFE6518D8, Mode 1/5 (800x600, format 1)
+    0: framebuffer is 0x80000000-0x801D4C00
+    0: PCI(e) device 1:2:0:0
+
+With `-i`, info on a specific instance can be printed, instead.
+`-b` may be used to patch the framebuffer address.
+
+    fs1:\> GopTool -i 0 -b 0x180000000
+    0: EFI_HANDLE 0xBFFE6518D8, Mode 1/5 (800x600, format 1)
+    0: framebuffer is 0x80000000-0x801D4C00
+    0: framebuffer is 0x180000000-0x1801D4C00 [overidden]
 
 ### tinycc
 

@@ -14,7 +14,6 @@
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UtilsLib.h>
-
 #include <Protocol/EfiShellParameters.h>
 
 EFI_STATUS
