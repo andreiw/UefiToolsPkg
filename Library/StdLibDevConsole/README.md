@@ -19,3 +19,13 @@ Differences:
 - Strip UTF16 BOM tag from StdIn, which is useful when redirecting
   via pipe or file.
 - Ignore 0-sized writes.
+- Catch wide writes where StrLen doesn't match buffer size, to
+  catch Proto->OutputString corruption.
+- Remove gMD->StdIo usage (no one cares about it at of 2017 for sure).
+- add the notion of "narrow" aliases nstdin:/nstdout:/nstderr:. These
+  are only useful when dealing with redirection (i.e. *never*
+  interactive console), and are useful for dealing with binary
+  data. e.g. to make a perfect copy:
+  `FS3:\>  cat.efi -o nstdout: nstdin: < hello.efi > out.efi`
+  `FS3:\>  cat.efi nstdin: < hello.efi | cat.efi -o nstdout: > out2.efi`
+- Strip UTF16 BOM tag from narrow StdOut/StdErr.

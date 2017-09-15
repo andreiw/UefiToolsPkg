@@ -12,15 +12,25 @@ UEFI Shell Redirection and pipes do work. E.g.:
     fs3:\> cat.efi < ls.uni
 
 Opened files are expected to be ASCII, while files created with the UEFI Shell are UTF-16.
-Either use the `<a` redirector or operate on ASCII files (which you could create using the `>a`
-redirector). Also, don't redirect binary data: `>` will give you a widened-byte version, while
-`<`, <a` and `>a` won't work. The bug is in the way UEFI Shell handles I/O to redirected
-console. Use `-o` instead.
+Either use the `<a` redirector or operate on ASCII text files (which you could create using the `>a`
+redirector).
+
+Also, the regular stdin:/stdout:/stderr: devices read and write UTF16 data, and
+while the Shell `>a`, `<a` and `|a` redirectors sort-of exist to support ASCII,
+these expect the data to be printable NUL-terminated text. Do not use these
+to deal with binary data.
+
+To deal with binary data `-o` for specifying where cat's output will go,
+and the 'narrow' character device aliases nstdin, nstdout and nstderr
+with `>`, `<` and `|` redirectors. Never use `>a`, `<a` and `|a`!
+
+Examples:
+    - `cat hello.efi -o out.efi`
+    - `cat.efi -o nstdout: nstdin: < hello.efi > out.efi`
+    - `cat.efi nstdin: < hello.efi | cat.efi -o nstdout: > out2.efi`
 
 Differences:
-- `-o` allow specifying an output file, since redirection via UEFI Shell
-  will produce wide-character output, and ASCII redirection won't deal
-  with non-printable characters (rendering it useless for binary data).
+- `-o` allow specifying an output file.
 
 Other limitations (mostly of edk2 StdLib implementation):
 - `-l` flag is useless (no file locking)

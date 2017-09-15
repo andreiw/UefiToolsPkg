@@ -1,16 +1,15 @@
 /** @file
   Abstract device driver for the UEFI Console.
 
-  Manipulates abstractions for stdin, stdout, stderr.
+  This creates stdin:/stdout:/stderr: as wide character
+  devices (_S_IWTTY) and nstdin:/nstdout:/nstderr: as
+  their "narrow" variants.
 
-  This device is a WIDE device and this driver returns WIDE
-  characters.  It this the responsibility of the caller to convert between
+  It this the responsibility of the caller to convert between
   narrow and wide characters in order to perform the desired operations.
 
-  The devices status as a wide device is indicatd by _S_IWTTY being set in
-  f_iflags.
-
-  Copyright (c) 2016, Daryl McDaniel. All rights reserved.<BR>
+  Copyright (c) 2017 Andrei Warkentin <andrey.warkentin@gmail.com>
+  Copyright (c) 2016, Daryl McDaniel. All rights reserved.
   Copyright (c) 2010 - 2014, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials are licensed and made available under
   the terms and conditions of the BSD License that accompanies this distribution.
@@ -45,18 +44,38 @@
 #include  <Device/IIO.h>
 #include  <MainData.h>
 
+#define DEVCON_NUM          6
+
+#define DEVCON_STDIN        0
+#define DEVCON_STDOUT       1
+#define DEVCON_STDERR       2
+#define DEVCON_NSTDIN       3
+#define DEVCON_NSTDOUT      4
+#define DEVCON_NSTDERR      5
+
+#define DEVCON_IS_IN(I)     ((I) == DEVCON_STDIN || (I) == DEVCON_NSTDIN)
+#define DEVCON_IS_OUT(I)    ((I) == DEVCON_STDOUT || (I) == DEVCON_NSTDOUT)
+#define DEVCON_IS_ERR(I)    ((I) == DEVCON_STDERR || (I) == DEVCON_NSTDERR)
+#define DEVCON_IS_WIDE(I)   ((I) == DEVCON_STDIN ||     \
+                             (I) == DEVCON_STDOUT ||    \
+                             (I) == DEVCON_STDERR)
+
 static const CHAR16* const
-stdioNames[NUM_SPECIAL]   = {
-  L"stdin:", L"stdout:", L"stderr:"
+stdioNames[DEVCON_NUM]   = {
+  L"stdin:", L"stdout:", L"stderr:",
+  L"nstdin:", L"nstdout:", L"nstderr:"
 };
 
-static const int stdioFlags[NUM_SPECIAL] = {
+static const int stdioFlags[DEVCON_NUM] = {
   O_RDONLY,             // stdin
   O_WRONLY,             // stdout
-  O_WRONLY              // stderr
+  O_WRONLY,             // stderr
+  O_RDONLY,             // ntdin
+  O_WRONLY,             // ntdout
+  O_WRONLY              // ntderr
 };
 
-static SHELL_FILE_HANDLE ShellHandles[NUM_SPECIAL];
+static SHELL_FILE_HANDLE ShellHandles[DEVCON_NUM];
 
 typedef enum {
   SH_HNDL_CON,
@@ -64,9 +83,9 @@ typedef enum {
   SH_HNDL_PIPE
 } SH_HNDL_TYPE;
 
-static SH_HNDL_TYPE ShellHandleTypes[NUM_SPECIAL];
+static SH_HNDL_TYPE ShellHandleTypes[DEVCON_NUM];
 
-static DeviceNode    *ConNode[NUM_SPECIAL];
+static DeviceNode    *ConNode[DEVCON_NUM];
 static ConInstance   *ConInstanceList;
 
 static cIIO          *IIO;
@@ -123,12 +142,12 @@ da_ConSeek(
 
   Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
   // Quick check to see if Stream looks reasonable
-  if(Stream->Cookie != CON_COOKIE) {    // Cookie == 'IoAb'
+  if (Stream->Cookie != CON_COOKIE) {    // Cookie == 'IoAb'
     EFIerrno = RETURN_INVALID_PARAMETER;
     errno = EINVAL;
     return -1;    // Looks like a bad This pointer
   }
-  if(Stream->InstanceNum == STDIN_FILENO) {
+  if (DEVCON_IS_IN(Stream->InstanceNum)) {
     // Seek is not valid for stdin
     EFIerrno = RETURN_UNSUPPORTED;
     errno = EIO;
@@ -159,17 +178,21 @@ da_ConSeek(
   return Position;
 }
 
-/* Write a NULL terminated WCS to the EFI console.
+/**
+  Write a buffer.
 
-  NOTE: The UEFI Console is a wide device, _S_IWTTY, so characters received
-        by da_ConWrite are WIDE characters.  It is the responsibility of the
-        higher-level function(s) to perform any necessary conversions.
+  If wide, the buffer is expected to contain wchar_t elements.
+  If not redirecting (actually printing to console), the buffer
+  is expected to contain a NUL-terminated UTF16 string.
 
-  @param[in,out]  BufferSize  Number of characters in Buffer.
-  @param[in]      Buffer      The WCS string to be displayed
+  If wide, BufferSize refers to count of wchar_t elements, else
+  count of char_t elements.
 
-  @return   The number of Characters written.
-*/
+  @param[in,out]  BufferSize  Number of elements in Buffer.
+  @param[in]      Buffer      Buffer
+
+  @return   The number of buffer elements processed.
+**/
 static
 ssize_t
 EFIAPI
@@ -196,7 +219,7 @@ da_ConWrite(
     return -1;    // Looks like a bad This pointer
   }
 
-  if(Stream->InstanceNum == STDIN_FILENO) {
+  if (DEVCON_IS_IN(Stream->InstanceNum)) {
     // Write is not valid for stdin
     EFIerrno = RETURN_UNSUPPORTED;
     errno = EIO;
@@ -218,7 +241,12 @@ da_ConWrite(
     }
 
     if(!RETURN_ERROR(Status)) {
-      UINTN BufSize = BufferSize * sizeof(wchar_t);
+      UINTN BufSize = BufferSize;
+
+      if (DEVCON_IS_WIDE(Stream->InstanceNum)) {
+        BufSize *=  sizeof(wchar_t);
+      }
+
       Status = ShellWriteFile(ShellHandles[Stream->InstanceNum],
                               (UINTN *) &BufSize, (void *) Buffer);
     }
@@ -232,7 +260,11 @@ da_ConWrite(
     }
 
     if(!RETURN_ERROR(Status)) {
-      // Send the Unicode buffer to the console
+      ASSERT(StrLen(Buffer) == BufferSize);
+      /*
+       * Danger, retarded interface doesn't take size, string better
+       * be terminated and printable.
+       */
       Status = Proto->OutputString( Proto, (CHAR16 *)Buffer);
     }
   }
@@ -250,11 +282,14 @@ da_ConWrite(
     errno = EIO;
   }
 
-  EFIerrno = Status;      // Make error reason available to caller
+  EFIerrno = Status;
   return NumChar;
 }
 
-/** Read a wide character from the console input device.
+/**
+   Read a single element from the console input device.
+
+   If wide, element is a wchar_t. Else a char.
 
     @param[in]      filp          Pointer to file descriptor for this file.
     @param[out]     Buffer        Buffer in which to place the read character.
@@ -278,15 +313,18 @@ da_ConRawRead (
   Self    = (cIIO *)filp->devdata;
   Stream  = BASE_CR(filp->f_ops, ConInstance, Abstraction);
 
-  ASSERT(Stream->InstanceNum == STDIN_FILENO);
+  ASSERT(DEVCON_IS_IN(Stream->InstanceNum));
 
   if (ShellHandleTypes[Stream->InstanceNum] != SH_HNDL_CON) {
     UINT64 Pos;
-    ssize_t BufSize = sizeof(*Character);
+    ssize_t BufSize = DEVCON_IS_WIDE(Stream->InstanceNum) ?
+      sizeof(wchar_t) : sizeof(char);
 
     ShellGetFilePosition(ShellHandles[Stream->InstanceNum], &Pos);
+    *Character = 0;
     Status = ShellReadFile(ShellHandles[Stream->InstanceNum],
                            (UINTN *) &BufSize, Character);
+    // DEBUG((EFI_D_ERROR, "read 0x%x bytes\n", BufSize));
     if (BufSize == 0) {
       Status = EFI_END_OF_FILE;
     }
@@ -296,6 +334,8 @@ da_ConRawRead (
     wchar_t                           RetChar;
     EFI_INPUT_KEY                     Key = {0,0};
     EFI_SIMPLE_TEXT_INPUT_PROTOCOL *Proto = (EFI_SIMPLE_TEXT_INPUT_PROTOCOL *)Stream->Dev;
+
+    ASSERT(DEVCON_IS_WIDE(Stream->InstanceNum));
 
     if(Stream->UnGetKey == CHAR_NULL) {
       Status = Proto->ReadKeyStroke(Proto, &Key);
@@ -334,15 +374,11 @@ da_ConRawRead (
   return EFI_SUCCESS;
 }
 
-/** Read a wide character from the console input device.
+/**
 
-  NOTE: The UEFI Console is a wide device, _S_IWTTY, so characters returned
-        by da_ConRead are WIDE characters.  It is the responsibility of the
-        higher-level function(s) to perform any necessary conversions.
+   Read a single element from the console input device.
 
-    A NUL character, 0x0000, is never returned.  In the event that such a character
-    is encountered, the read is either retried or -1 is returned with errno set
-    to EAGAIN.
+   If wide, element is a wchar_t. Else a char.
 
     @param[in]      filp          Pointer to file descriptor for this file.
     @param[in]      offset        Ignored.
@@ -372,7 +408,7 @@ da_ConRead(
   wchar_t                           RetChar;
 
   Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
-  if(Stream->InstanceNum != STDIN_FILENO) {
+  if (!DEVCON_IS_IN(Stream->InstanceNum)) {
     // Read is not valid for stdout and stderr.
     EFIerrno = RETURN_UNSUPPORTED;
     errno = EIO;
@@ -401,6 +437,7 @@ da_ConRead(
 
     if (Status == EFI_NOT_READY && BlockingMode) {
       ASSERT(ShellHandleTypes[Stream->InstanceNum] == SH_HNDL_CON);
+      ASSERT(DEVCON_IS_WIDE(Stream->InstanceNum));
       gBS->WaitForEvent(1, &Proto->WaitForKey, &Edex);
       continue;
     }
@@ -410,7 +447,11 @@ da_ConRead(
 
   switch (Status) {
   case EFI_SUCCESS:
-    *((wchar_t *)Buffer) = RetChar;
+    if (DEVCON_IS_WIDE(Stream->InstanceNum)) {
+      *((wchar_t *)Buffer) = RetChar;
+    } else {
+      *((char *)Buffer) = RetChar;
+    }
     return 1;
   case EFI_NOT_READY:
     errno = EAGAIN;
@@ -470,7 +511,7 @@ da_ConStat(
   Buffer->st_atime = Buffer->st_mtime = Buffer->st_birthtime;
 
   // ConGetPosition
-  if(Stream->InstanceNum == STDIN_FILENO) {
+  if(DEVCON_IS_IN(Stream->InstanceNum)) {
     // This is stdin
     Buffer->st_curpos    = 0;
     Buffer->st_size      = (off_t)Stream->NumRead;
@@ -592,17 +633,48 @@ da_ConOpen(
 
   Termio = &IIO->Termio;
   Instance = Stream->InstanceNum;
-  if(Instance < NUM_SPECIAL) {
-    gMD->StdIo[Instance] = Stream;
-    filp->f_iflags |= (_S_IFCHR | _S_ITTY | _S_IWTTY | _S_ICONSOLE);
+
+  if (!DEVCON_IS_WIDE(Instance) &&
+      ShellHandleTypes[Instance] == SH_HNDL_CON) {
+    /*
+     * SimpleText is inherently wide, no narrow support.
+     */
+    errno = ENOTSUP;
+    EFIerrno = EFI_UNSUPPORTED;
+    return -1;
+  }
+
+  if (ShellHandleTypes[Instance] != SH_HNDL_CON) {
+    if (DEVCON_IS_WIDE(Instance) && DEVCON_IS_IN(Instance)) {
+      /*
+       * For wide input, ignore the first UTF16 tag.
+       */
+      RemoveFileTag(ShellHandles[Instance]);
+    } else if ((DEVCON_IS_OUT(Instance) ||
+                DEVCON_IS_ERR(Instance)) &&
+               !DEVCON_IS_WIDE(Instance)) {
+      /*
+       * For narrow devices, undo the damage that Shell might do
+       * writing the UTF16 tag on | and >.
+       */
+      ShellSetFilePosition(ShellHandles[Instance], 0);
+    }
+  }
+
+  if(Instance < DEVCON_NUM) {
+    filp->f_iflags |= _S_IFCHR | _S_ITTY;
+    if (DEVCON_IS_WIDE(Instance)) {
+      filp->f_iflags |= _S_IWTTY;
+    }
     filp->f_offset = 0;
     filp->f_ops = &Stream->Abstraction;
     filp->devdata = (void *)IIO;
     RetVal = 0;
 
     if((filp->Oflags & O_TTY_INIT) != 0) {
-      if (ShellHandleTypes[Instance] == SH_HNDL_CON) {
-        if (Instance == STDIN_FILENO) {
+      if (ShellHandleTypes[Instance] == SH_HNDL_CON &&
+          DEVCON_IS_WIDE(Instance)) {
+        if (DEVCON_IS_IN(Instance)) {
           Termio->c_iflag |= ICRNL | IGNSPEC;
           Termio->c_lflag |= ICANON;
         } else {
@@ -660,22 +732,9 @@ da_ConFlush(
   }
 
   if (Flags != O_RDONLY)  {   // (Flags == O_WRONLY) || (Flags == O_RDWR)
-    // Writable so flush the output buffer
-    // At this point, the characters to write are in OutBuf
-    // First, linearize and consume the buffer
     NumProc = OutBuf->Read(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
-    if (NumProc > 0) {  // Optimization -- Nothing to do if no characters
-      gMD->UString[NumProc] = 0;   // Ensure that the buffer is terminated
-
-      /*  OutBuf always contains wide characters.
-          The UEFI Console (this device) always expects wide characters.
-          There is no need to handle devices that expect narrow characters
-          like the device-independent functions do.
-      */
-      // Do the actual write of the data to the console
+    if (NumProc > 0) {
       (void) da_ConWrite(filp, NULL, NumProc, gMD->UString);
-      // Paranoia -- Make absolutely sure that OutBuf is empty in case fo_write
-      // wasn't able to consume everything.
       OutBuf->Flush(OutBuf, UNICODE_STRING_MAX);
     }
   }
@@ -712,8 +771,6 @@ da_ConClose(
 
   // Break the connection to IIO
   filp->devdata = NULL;
-
-  gMD->StdIo[Stream->InstanceNum] = NULL;   // Mark the stream as closed
   return 0;
 }
 
@@ -760,7 +817,7 @@ da_ConPoll(
     return POLLNVAL;    // Looks like a bad filp pointer
   }
 
-  if(Stream->InstanceNum == STDIN_FILENO) {
+  if (DEVCON_IS_IN(Stream->InstanceNum)) {
     // STDIN: Only input is supported for this device
 
     if (ShellHandleTypes[Stream->InstanceNum] != SH_HNDL_CON) {
@@ -777,7 +834,7 @@ da_ConPoll(
         Stream->UnGetKey  = CHAR_NULL;
       }
     }
-  } else if(Stream->InstanceNum < NUM_SPECIAL) {  // Not 0, is it 1 or 2?
+  } else if(Stream->InstanceNum < DEVCON_NUM) {  // Not 0, is it 1 or 2?
     // (STDOUT || STDERR): Only output is supported for this device
     RdyMask = POLLOUT;
   } else {
@@ -813,7 +870,7 @@ __Cons_construct(
   }
 
   Status = RETURN_OUT_OF_RESOURCES;
-  ConInstanceList = (ConInstance *)AllocateZeroPool(NUM_SPECIAL * sizeof(ConInstance));
+  ConInstanceList = (ConInstance *)AllocateZeroPool(DEVCON_NUM * sizeof(ConInstance));
   if(ConInstanceList == NULL) {
     return Status;
   }
@@ -831,7 +888,7 @@ __Cons_construct(
   Termio->c_cc[VEOF]    = 0x04;   // ^D EOF
 
   Status = RETURN_SUCCESS;
-  for( i = 0; i < NUM_SPECIAL; ++i) {
+  for( i = 0; i < DEVCON_NUM; ++i) {
     // Get pointer to instance.
     Stream = &ConInstanceList[i];
 
@@ -840,17 +897,20 @@ __Cons_construct(
     Stream->CharState.A = 0;    // Start in the initial state
 
     switch(i) {
-    case STDIN_FILENO:
+    case DEVCON_STDIN:
+    case DEVCON_NSTDIN:
       Stream->Dev = SystemTable->ConIn;
       ShellHandles[i] = ShellParameters->StdIn;
       ShellHandleTypes[i] = ShellHandleType(ShellHandles[i]);
       break;
-    case STDOUT_FILENO:
+    case DEVCON_STDOUT:
+    case DEVCON_NSTDOUT:
       Stream->Dev = SystemTable->ConOut;
       ShellHandles[i] = ShellParameters->StdOut;
       ShellHandleTypes[i] = ShellHandleType(ShellHandles[i]);
       break;
-    case STDERR_FILENO:
+    case DEVCON_STDERR:
+    case DEVCON_NSTDERR:
       Stream->Dev = SystemTable->StdErr;
       ShellHandles[i] = ShellParameters->StdErr;
       ShellHandleTypes[i] = ShellHandleType(ShellHandles[i]);
@@ -869,11 +929,6 @@ __Cons_construct(
       break;
     default:
       return RETURN_VOLUME_CORRUPTED;     // This is a "should never happen" case.
-    }
-
-    if (ShellHandleTypes[i] != SH_HNDL_CON &&
-        i == STDIN_FILENO) {
-      RemoveFileTag(ShellHandles[i]);
     }
 
     Stream->Abstraction.fo_close    = &da_ConClose;
@@ -897,6 +952,8 @@ __Cons_construct(
     if(Stream->Dev == NULL) {
       continue;                 // No device for this stream.
     }
+
+    DEBUG((EFI_D_ERROR, "registering %s", stdioNames[i]));
     ConNode[i] = __DevRegister(stdioNames[i], NULL, &da_ConOpen, Stream,
                                1, sizeof(ConInstance), stdioFlags[i]);
     if(ConNode[i] == NULL) {
@@ -921,7 +978,7 @@ __Cons_deconstruct(
 {
   int   i;
 
-  for(i = 0; i < NUM_SPECIAL; ++i) {
+  for(i = 0; i < DEVCON_NUM; ++i) {
     if(ConNode[i] != NULL) {
       FreePool(ConNode[i]);
     }

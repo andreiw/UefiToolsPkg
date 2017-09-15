@@ -16,6 +16,13 @@ Differences:
 - Fix `IIO_Write` incorrectly treating CharLen as signed size, leading to crashes
   and unpredictable behavior on writes of binary data through IIO.
 - Fix `IIO_Write` to allow printing wide NULs.
+- Drop UTF8 support entirely. "POSIX" side is taken to be single-byte only. This
+  may seem like loss of functionality, but in practice it will make, when
+  combined with special "narrow" stdin/stdout variants and redirection, the UNIX
+  tools work as expected on binary data (without corrupting it).
 
 It seem InteractiveIO is its own ad-hoc, and very buggy implementation
-of a line discipline. That seems like a mistake.
+of a line discipline. That seems like a mistake. Many issues exist
+because I/O is done through the UEFI Shell and that expects UTF16-coded
+data (the weird Shell 'narrow' `|a` `<a` and `>a` are just broken as they
+expect _printable_ NUL-terminated UTF16).

@@ -28,6 +28,8 @@
 #include  "IIOutilities.h"
 #include  "IIOechoCtrl.h"
 
+#include <Library/DebugLib.h>
+
 // Instrumentation used for debugging
 #define   IIO_C_DEBUG   0       ///< Set to 1 to enable instrumentation, 0 to disable
 
@@ -42,10 +44,27 @@
   #define R_INSTRUMENT  (void)
 #endif  // IIO_C_DEBUG
 
+static void
+buffer_narrow(const wchar_t *src, char *dest, size_t count)
+{
+  size_t i;
+
+  for (i = 0; i < count; i++) {
+    if (*src > 0xFF) {
+      *dest = '?';
+    } else {
+      *dest = *src;
+    }
+
+    src++;
+    dest++;
+  }
+}
+
 /** Read from an Interactive IO device.
 
   NOTE: If _S_IWTTY is set, the internal buffer contains WIDE characters.
-        They will need to be converted to MBCS when returned.
+        They will need to be converted to narrow when returned.
 
     Input is line buffered if ICANON is set,
     otherwise MIN determines how many characters to input.
@@ -72,8 +91,6 @@ IIO_Read(
   cIIO     *This;
   ssize_t   NumRead;
   tcflag_t  Flags;
-  size_t    XlateSz;
-  size_t    Needed;
 
   NumRead = -1;
   This = filp->devdata;
@@ -100,21 +117,15 @@ IIO_Read(
 
   // At this point, the input has been accumulated in the input buffer.
   if(filp->f_iflags & _S_IWTTY) {
-    // Data in InBuf is wide characters.  Convert to MBCS
+    // Data in InBuf is wide characters. Narrow down.
     // First, convert the most required FIFO elements into a linear buffer.
     NumRead = This->InBuf->Copy(This->InBuf, gMD->UString2,
                                 MIN(MIN(UNICODE_STRING_MAX-1, NumRead), BufferSize));
-    gMD->UString2[NumRead] = 0;   // Ensure that the buffer is terminated
-    // Determine the needed space
-    XlateSz = EstimateWtoM((const wchar_t *)gMD->UString2, BufferSize, &Needed);
-
-    // Now translate this into MBCS in Buffer
-    NumRead = wcstombs((char *)Buffer, (const wchar_t *)gMD->UString2, XlateSz);
+    buffer_narrow((const wchar_t *)gMD->UString2, (char *) Buffer, NumRead);
 
     // Consume the translated characters
-    (void) This->InBuf->Flush(This->InBuf, Needed);
-  }
-  else {
+    (void) This->InBuf->Flush(This->InBuf, NumRead);
+  } else {
     // Data in InBuf is narrow characters.  Use verbatim.
     NumRead = This->InBuf->Read(This->InBuf, Buffer,
                                 MIN(NumRead, (INT32)BufferSize));
@@ -131,7 +142,7 @@ IIO_Read(
     Processes characters from buffer buf and writes them to the Terminal device
     specified by filp.
 
-    The parameter buf points to a MBCS string to be output. This is processed
+    The parameter buf points to a narrow buffer to be output. This is processed
     and buffered one character at a time by IIO_WriteOne() which handles TAB
     expansion, NEWLINE to CARRIAGE_RETURN + NEWLINE expansion, as well as
     basic line editing functions. The number of characters actually written to
@@ -146,7 +157,7 @@ IIO_Read(
     unchanged, to the Terminal device.
 
     @param[in]      filp      Pointer to a file descriptor structure.
-    @param[in]      buf       Pointer to the MBCS string to be output.
+    @param[in]      buf       Pointer to the narrow buffer to be output.
     @param[in]      N         Number of bytes in buf.
 
     @retval   >=0     Number of bytes consumed from buf and sent to the
@@ -163,14 +174,11 @@ IIO_Write(
 {
   cIIO       *This;
   cFIFO      *OutBuf;
-  mbstate_t  *OutState;
-  char       *MbcsPtr;
   ssize_t     NumConsumed;
-  ssize_t     NumProc;
   size_t      CharLen;
   UINTN       MaxColumn;
   UINTN       MaxRow;
-  wchar_t     OutChar[2];     // Just in case we run into a 4-byte MBCS character
+  wchar_t     OutChar;
   int         OutMode;
 
   NumConsumed = -1;
@@ -194,10 +202,8 @@ IIO_Write(
 
   if(filp->MyFD == STDERR_FILENO) {
     OutBuf = This->ErrBuf;
-    OutState  = &This->ErrState;
   } else {
     OutBuf = This->OutBuf;
-    OutState  = &This->OutState;
   }
 
   /*  Set the maximum screen dimensions. */
@@ -210,69 +216,43 @@ IIO_Write(
   This->CurrentXY.Row     = This->InitialXY.Row;
 
   NumConsumed = 0;
-  OutChar[0]  = (wchar_t)buf[0];
   while(NumConsumed < N) {
-    CharLen = mbrtowc(OutChar, (const char *)&buf[NumConsumed], MB_CUR_MAX, OutState);
-    if (CharLen == 0) {
-      /*
-       * mbrtowc saw a NUL character. Keep calm - it stored a wide NUL and
-       * reset the internal shift state.
-       */
-      CharLen = 1;
-    } else if (CharLen == (size_t) -1 ||
-               CharLen == (size_t) -2) {  // Encoding Error
-      OutChar[0] = BLOCKELEMENT_LIGHT_SHADE;
-      CharLen = 1;  // Consume a byte
-      (void)mbrtowc(NULL, NULL, 1, OutState);  // Re-Initialize the conversion state
-    }
+    OutChar = buf[NumConsumed] & 0xFF;
 
-    NumProc = IIO_WriteOne(filp, OutBuf, OutChar[0]);
-    if(NumProc >= 0) {
-      // Successfully processed and buffered one character
-      NumConsumed += CharLen;   // Index of start of next character
+    if (IIO_WriteOne(filp, OutBuf, OutChar) >= 0) {
+      NumConsumed++;
     } else {
       if (errno == ENOSPC) {
-        // Not enough room in OutBuf to hold a potentially expanded character
         break;
       }
-      return -1;    // Something corrupted and filp->devdata is now NULL
+
+      return -1; // Ummm?
     }
   }
 
   // At this point, the characters to write are in OutBuf
-  // First, linearize the buffer
-  NumProc = OutBuf->Copy(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
-  gMD->UString[NumProc] = 0;   // Ensure that the buffer is terminated
+  CharLen = OutBuf->Copy(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
 
-  if (NumProc != 0) {
+  if (CharLen != 0) {
     if(filp->f_iflags & _S_IWTTY) {
-      // Output device expects wide characters, Output what we have
-      NumProc = filp->f_ops->fo_write(filp, NULL, NumProc, gMD->UString);
-
-      // Consume the output characters
-      W_INSTRUMENT OutBuf->Flush(OutBuf, NumProc);
+       /*
+       * This stupidity accomodates ConOut->OutputString not actually
+       * taking a size. This is bad, but calling OutputString a million
+       * time would make I/O slower, and only IIO knows how to
+       * call daConsole's fo_write, anyway.
+       *
+       * There's an assert in daConsole.c to catch this now.
+       */
+      gMD->UString[CharLen] = 0;
+      CharLen = filp->f_ops->fo_write(filp, NULL, CharLen, gMD->UString);
     } else {
-      // Output device expects narrow characters, convert to MBCS
-      MbcsPtr = (char *)gMD->UString2;
-      // Determine the needed space. NumProc is the number of bytes needed.
-      NumProc = (ssize_t)EstimateWtoM((const wchar_t *)gMD->UString,
-                                      UNICODE_STRING_MAX * sizeof(wchar_t), &CharLen);
-
-      // Now translate this into MBCS in the buffer pointed to by MbcsPtr.
-      // The returned value, NumProc, is the resulting number of bytes.
-      NumProc = wcstombs(MbcsPtr, (const wchar_t *)gMD->UString, NumProc);
-      MbcsPtr[NumProc] = 0;   // Ensure the buffer is terminated
-
-      // Send the MBCS buffer to Output
-      NumProc = filp->f_ops->fo_write(filp, NULL, NumProc, MbcsPtr);
-      // Mark the Mbcs buffer after the last byte actually written
-      MbcsPtr[NumProc] = 0;
-      // Count the CHARACTERS actually sent
-      CharLen = CountMbcsChars(MbcsPtr);
-
-      // Consume the number of output characters actually sent
-      W_INSTRUMENT OutBuf->Flush(OutBuf, CharLen);
+      buffer_narrow((const wchar_t *) gMD->UString,
+                    (char *) gMD->UString2,
+                    CharLen);
+      CharLen = filp->f_ops->fo_write(filp, NULL, CharLen, (char *) gMD->UString2);
     }
+
+    W_INSTRUMENT OutBuf->Flush(OutBuf, CharLen);
   }
 
   return NumConsumed;
@@ -300,7 +280,6 @@ IIO_Echo(
   cIIO     *This;
   ssize_t   NumWritten;
   cFIFO    *OutBuf;
-  char     *MbcsPtr;
   tcflag_t  LFlags;
 
   NumWritten = -1;
@@ -325,9 +304,7 @@ IIO_Echo(
   IIO_EchoOne(filp, EChar, EchoIsOK);
 
   // At this point, the character(s) to write are in OutBuf
-  // First, linearize the buffer
   NumWritten = OutBuf->Copy(OutBuf, gMD->UString, UNICODE_STRING_MAX-1);
-  gMD->UString[NumWritten] = 0;   // Ensure that the buffer is terminated
 
   if((EChar == IIO_ECHO_KILL) && (LFlags & ECHOE) && EchoIsOK) {
     // Position the cursor to the start of input.
@@ -335,28 +312,22 @@ IIO_Echo(
   }
 
   if (NumWritten) {
-    // Output the buffer
     if(filp->f_iflags & _S_IWTTY) {
-      // Output device expects wide characters, Output what we have
+      /*
+       * This stupidity accomodates ConOut->OutputString not actually
+       * taking a size. This is bad, but calling OutputString a million
+       * time would make I/O slower, and only IIO knows how to
+       * call daConsole's fo_write, anyway.
+       *
+       * There's an assert in daConsole.c to catch this now.
+       */
+      gMD->UString[NumWritten] = 0;
       NumWritten = filp->f_ops->fo_write(filp, NULL, NumWritten, gMD->UString);
     } else {
-      ssize_t NumProc;
-
-      // Output device expects narrow characters, convert to MBCS
-      MbcsPtr = (char *)gMD->UString2;
-      // Determine the needed space
-      NumProc = (ssize_t)EstimateWtoM((const wchar_t *)gMD->UString,
-                                      UNICODE_STRING_MAX * sizeof(wchar_t), NULL);
-
-      // Now translate this into MBCS in Buffer
-      NumWritten = wcstombs(MbcsPtr, (const wchar_t *)gMD->UString, NumProc);
-      MbcsPtr[NumWritten] = 0;   // Ensure the buffer is terminated
-
-      // Send the MBCS buffer to Output
-      NumWritten = filp->f_ops->fo_write(filp, NULL, NumWritten, MbcsPtr);
+      buffer_narrow((const wchar_t *) gMD->UString,  (char *) gMD->UString2, NumWritten);
+      NumWritten = filp->f_ops->fo_write(filp, NULL, NumWritten, (char *) gMD->UString2);
     }
 
-    // Consume the echoed characters
     (void)OutBuf->Flush(OutBuf, NumWritten);
   }
 
