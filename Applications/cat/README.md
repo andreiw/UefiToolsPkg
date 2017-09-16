@@ -15,19 +15,22 @@ Opened files are expected to be ASCII, while files created with the UEFI Shell a
 Either use the `<a` redirector or operate on ASCII text files (which you could create using the `>a`
 redirector).
 
-Also, the regular stdin:/stdout:/stderr: devices read and write UTF16 data, and
+Also, the regular `stdin:`/`stdout:`/`stderr:` devices read and write UTF16 data, and
 while the Shell `>a`, `<a` and `|a` redirectors sort-of exist to support ASCII,
 these expect the data to be printable NUL-terminated text. Do not use these
 to deal with binary data.
 
-To deal with binary data `-o` for specifying where cat's output will go,
-and the 'narrow' character device aliases nstdin, nstdout and nstderr
-with `>`, `<` and `|` redirectors. Never use `>a`, `<a` and `|a`!
+To deal with binary data use `-o` for specifying where the `cat` output will go,
+and the "narrow" character device aliases `nstdin:`, `nstdout:` and `nstderr:`
+with `>`, `<` and `|` redirectors. Never use `>a`, `<a` and `|a`! The "narrow"
+aliases are only available if you link against the modified StdLib libraries
+in this distibution.
 
 Examples:
-    - `cat hello.efi -o out.efi`
-    - `cat.efi -o nstdout: nstdin: < hello.efi > out.efi`
-    - `cat.efi nstdin: < hello.efi | cat.efi -o nstdout: > out2.efi`
+
+    cat hello.efi -o out.efi
+    cat.efi -o nstdout: nstdin: < hello.efi > out.efi
+    cat.efi nstdin: < hello.efi | cat.efi -o nstdout: > out2.efi
 
 Differences:
 - `-o` allow specifying an output file.

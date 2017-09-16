@@ -7,8 +7,8 @@ Differences:
   This solves the unexpected behavior of POSIX apps seemingly printing
   nothing on error on certain UEFI implementations that always redirect
   StdErr to serial or to noting.
-- Set correct permissions and current time on stdin:/stdout:/stderr:.
-- Disallow reading on stdout: and stderr:.
+- Set correct permissions and current time on `stdin:`/`stdout:`/`stderr:`.
+- Disallow reading on `stdout:` and `stderr:`.
 - Make Shell redirection via pipes work (e.g. `ls | cat`).
 - Move Termio init from StdLibUefi.
 - Detect Shell redirection of StdIn/StdOut/Stderr (file or 'pipe') to
@@ -20,12 +20,10 @@ Differences:
   via pipe or file.
 - Ignore 0-sized writes.
 - Catch wide writes where StrLen doesn't match buffer size, to
-  catch Proto->OutputString corruption.
+  catch `Proto->OutputString` corruption.
 - Remove gMD->StdIo usage (no one cares about it at of 2017 for sure).
-- add the notion of "narrow" aliases nstdin:/nstdout:/nstderr:. These
-  are only useful when dealing with redirection (i.e. *never*
+- add the notion of "narrow" aliases `nstdin:`, `nstdout:` and `nstderr:`.
+  These only function  when dealing with redirection (i.e. *never*
   interactive console), and are useful for dealing with binary
-  data. e.g. to make a perfect copy:
-  `FS3:\>  cat.efi -o nstdout: nstdin: < hello.efi > out.efi`
-  `FS3:\>  cat.efi nstdin: < hello.efi | cat.efi -o nstdout: > out2.efi`
+  data. e.g. to make a perfect copy.
 - Strip UTF16 BOM tag from narrow StdOut/StdErr.

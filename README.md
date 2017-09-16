@@ -276,7 +276,7 @@ in [README.md](Applications/stat/README.md).
 
 ### cat
 
-Catenate and print files. Limitations are highlighted
+Catenate and print files. Examples of use and limitations are highlighted
 in [README.md](Applications/cat/README.md).
 
     fs3:\> cat
