@@ -55,6 +55,8 @@
                     ((m & _S_IFMT) == (_S_IFCHR | S_ITTY)) ||          \
                     ((m & _S_IFMT) == (_S_IFCHR | S_ITTY | S_IWTTY)))  \
 
+#define __arraycount(__x) (sizeof(__x) / sizeof(__x[0]))
+
 void strmode(mode_t mode, char *p);
 
 int toascii(int c);
@@ -69,5 +71,16 @@ int toascii(int c);
 
 int humanize_number(char *buf, size_t len, int64_t bytes,
                     const char *suffix, int scale, int flags);
+
+long long
+strsuftollx(const char *desc, const char *val,
+            long long min, long long max, char *ebuf, size_t ebuflen);
+
+long long
+strsuftoll(const char *desc, const char *val,
+           long long min, long long max);
+
+void
+swab(const void * __restrict from, void * __restrict to, ssize_t len);
 
 #endif /* _STD_EXT_LIB_H_ */

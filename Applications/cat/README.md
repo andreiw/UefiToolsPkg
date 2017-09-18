@@ -28,9 +28,10 @@ in this distibution.
 
 Examples:
 
-    cat hello.efi -o out.efi
-    cat.efi -o nstdout: nstdin: < hello.efi > out.efi
-    cat.efi nstdin: < hello.efi | cat.efi -o nstdout: > out2.efi
+    fs3:\> cat hello.efi -o out.efi
+    fs3:\> cat.efi -o nstdout: nstdin: < hello.efi > out.efi
+    fs3:\> cat.efi nstdin: < hello.efi | cat.efi -o nstdout: > out2.efi
+    fs3:\> cat.efi -o nstdout: stdin: < text.utf16 > text.ascii
 
 Differences:
 - `-o` allow specifying an output file.

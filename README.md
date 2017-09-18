@@ -250,6 +250,7 @@ Name | Description
 [ls](#ls) | Port of NetBSD directory lister
 [stat](#stat) | Port of NetBSD stat
 [cat](#cat) | Port of NetBSD cat
+[dd](#d) | Port of NetBSD dd
 
 ### ls
 
@@ -281,6 +282,17 @@ in [README.md](Applications/cat/README.md).
 
     fs3:\> cat
     ^D
+
+### dd
+
+Convert and copy files. Examples of use and limitations are highlighted
+in [README.md](Applications/dd/README.md).
+
+    fs3:\> dd
+    ^D
+    0+0 records in
+    0+0 records out
+    0 bytes transferred in 0.347366 secs (0 bytes/sec)
 
 Libraries
 ---------

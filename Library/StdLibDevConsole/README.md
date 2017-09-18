@@ -27,3 +27,7 @@ Differences:
   interactive console), and are useful for dealing with binary
   data. e.g. to make a perfect copy.
 - Strip UTF16 BOM tag from narrow StdOut/StdErr.
+
+Improvements to make:
+- VINTR should raise signals.
+- `whence` should not be ignored in da_conSeek.

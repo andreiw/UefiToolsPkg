@@ -112,6 +112,8 @@ RemoveFileTag(
 
   CharSize    = sizeof(CHAR16);
   CharBuffer  = 0;
+
+  ShellSetFilePosition(Handle, 0);
   ShellReadFile(Handle, &CharSize, &CharBuffer);
   if (CharBuffer != EFI_UNICODE_BYTE_ORDER_MARK) {
     ShellSetFilePosition(Handle, 0);
@@ -147,14 +149,15 @@ da_ConSeek(
     errno = EINVAL;
     return -1;    // Looks like a bad This pointer
   }
-  if (DEVCON_IS_IN(Stream->InstanceNum)) {
-    // Seek is not valid for stdin
+  if (DEVCON_IS_IN(Stream->InstanceNum) &&
+      ShellHandleTypes[Stream->InstanceNum] == SH_HNDL_CON) {
+    // Seek is not valid for seeking non-redirected stdin.
     EFIerrno = RETURN_UNSUPPORTED;
     errno = EIO;
     return -1;
   }
-  // Everything is OK to do the final verification and "seek".
 
+  // Everything is OK to do the final verification and "seek".
   if (ShellHandleTypes[Stream->InstanceNum] != SH_HNDL_CON) {
     EFIerrno = ShellSetFilePosition(ShellHandles[Stream->InstanceNum],
                                     Position);
@@ -953,7 +956,6 @@ __Cons_construct(
       continue;                 // No device for this stream.
     }
 
-    DEBUG((EFI_D_ERROR, "registering %s", stdioNames[i]));
     ConNode[i] = __DevRegister(stdioNames[i], NULL, &da_ConOpen, Stream,
                                1, sizeof(ConInstance), stdioFlags[i]);
     if(ConNode[i] == NULL) {

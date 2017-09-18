@@ -110,6 +110,7 @@
   UefiToolsPkg/Applications/ls/ls.inf
   UefiToolsPkg/Applications/stat/stat.inf
   UefiToolsPkg/Applications/cat/cat.inf
+  UefiToolsPkg/Applications/dd/dd.inf
 
 [Components.X64,Components.AArch64]
   UefiToolsPkg/Applications/tinycc/TCCInUEFI.inf

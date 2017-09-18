@@ -11,29 +11,33 @@
 #
 
 [Defines]
-  INF_VERSION                    = 0x00010005
-  BASE_NAME                      = StdExtLib
-  FILE_GUID                      = ddcbcbc1-bb25-11df-8e4e-0002a5d5c51c
-  MODULE_TYPE                    = BASE
-  VERSION_STRING                 = 1.0
-  LIBRARY_CLASS                  = StdExtLib
+  INF_VERSION                    = 0x00010006
+  BASE_NAME                      = dd
+  FILE_GUID                      = 4aaf546-7491-4dfd-b442-747010f3cefd
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 0.1
+  ENTRY_POINT                    = ShellCEntryLib
 
 [Sources]
-  strmode.c
-  humanize.c
-  toascii.c
-  strsuftoll.c
-  swab.c
+  args.c
+  conv.c
+  conv_tab.c
+  dd.c
+  misc.c
+  position.c
 
 [Packages]
-  MdePkg/MdePkg.dec
-  MdeModulePkg/MdeModulePkg.dec
-  UefiToolsPkg/UefiToolsPkg.dec
   StdLib/StdLib.dec
+  MdePkg/MdePkg.dec
+  ShellPkg/ShellPkg.dec
+  UefiToolsPkg/UefiToolsPkg.dec
 
 [LibraryClasses]
   LibC
-
-[Guids]
-
-[Protocols]
+  LibStdio
+  LibMath
+  LibLocale
+  DevShell
+  LibErr
+  LibTime
+  StdExtLib
