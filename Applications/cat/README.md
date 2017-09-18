@@ -2,6 +2,8 @@ This is the NetBSD `cat` utility, revision 1.47.20.1
 
 Really hacky port. Sorry.
 
+**This tool has been only validated with the modified StdLib libraries in this distributon.**
+
 UEFI Shell Redirection and pipes do work. E.g.:
 
     fs3:\> ls.efi -l | cat.efi
@@ -22,9 +24,7 @@ to deal with binary data.
 
 To deal with binary data use `-o` for specifying where the `cat` output will go,
 and the "narrow" character device aliases `nstdin:`, `nstdout:` and `nstderr:`
-with `>`, `<` and `|` redirectors. Never use `>a`, `<a` and `|a`! The "narrow"
-aliases are only available if you link against the modified StdLib libraries
-in this distibution.
+with `>`, `<` and `|` redirectors. Never use `>a`, `<a` and `|a`!
 
 Examples:
 

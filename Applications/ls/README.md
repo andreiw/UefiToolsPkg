@@ -2,6 +2,8 @@ This is the NetBSD `ls` utility, revision 1.75.4.1.
 
 Really hacky port. Sorry.
 
+**This tool has been only validated with the modified StdLib libraries in this distributon.**
+
 Limitations (mostly of edk2 StdLib implementation):
 - Terminal columns always 80.
 - No `-o` option (show flags)

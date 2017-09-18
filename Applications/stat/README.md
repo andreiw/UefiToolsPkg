@@ -2,6 +2,8 @@ This is the NetBSD `stat` utility, revision 1.38.
 
 Really hacky port. Sorry.
 
+**This tool has been only validated with the modified StdLib libraries in this distributon.**
+
 Limitations (mostly of edk2 StdLib implementation):
 - No `st_dev` (%d format)
 - No `st_ino` (%i format)

@@ -2,6 +2,8 @@ This is the NetBSD `dd` utility, revision 1.51
 
 Really hacky port. Sorry.
 
+**This tool has been only validated with the modified StdLib libraries in this distributon.**
+
 Examples:
 
     fs3:\> dd if=stdin: of=nstdout: < text.utf16 > text.ascii err 2> dd.errs
