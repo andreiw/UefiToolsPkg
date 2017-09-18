@@ -104,6 +104,7 @@
   UefiToolsPkg/Applications/AcpiDump/AcpiDump.inf
   UefiToolsPkg/Applications/AcpiLoader/AcpiLoader.inf
   UefiToolsPkg/Applications/ShellPlatVars/ShellPlatVars.inf
+  UefiToolsPkg/Applications/ShellErrVars/ShellErrVars.inf
   UefiToolsPkg/Applications/MemResv/MemResv.inf
   UefiToolsPkg/Applications/RangeIsMapped/RangeIsMapped.inf
   UefiToolsPkg/Applications/GopTool/GopTool.inf
