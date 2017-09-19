@@ -16,6 +16,7 @@ without a "real OS" around.
 * Useful [utilities](#utilities) for developers and admins.
 * Ported UNIX [tools](#unix-tools).
 * Useful [libraries](#libraries) for developers.
+* [Drivers](#drivers) for UEFI.
 * [Development tools](#development-tools) for Windows/Linux.
 
 Other tools [around the Web](OTHER.md).
@@ -419,6 +420,13 @@ StdLibInteractiveIO | LibIIO | [README.md](Library/StdLibInteractiveIO/README.md
 
 I ought to upstream at least some of these fixes. Without these fixes, the
 NetBSD tools in this collection will work even worse than they do now ;-).
+
+Drivers
+-------
+
+What | Description | Platform | Notes
+--- | --- | --- | ---
+QemuVideoDxe | GOP driver for QEMU | OVMF, ArmVirtPkg | [README.md](Drivers/QemuVideoDxe/README.md)
 
 Development Tools
 -----------------

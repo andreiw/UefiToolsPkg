@@ -47,7 +47,9 @@ GetTable (
           IN EFI_GUID *Guid
           );
 
+#ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#endif
 
 CHAR16
 CharToUpper (

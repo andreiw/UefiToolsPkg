@@ -1,5 +1,5 @@
 #
-# Time-stamp: <2017-03-13 13:10:16 andreiw>
+# Time-stamp: <2017-09-19 02:00:12 andreiw>
 # Copyright (C) 2016 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
@@ -120,3 +120,10 @@
 
 [Components.ARM,Components.AARCH64,Components.PPC64]
   UefiToolsPkg/Applications/FdtDump/FdtDump.inf
+
+[Components.IA32,Components.X64,Components.ARM,Components.AArch64]
+  UefiToolsPkg/Drivers/QemuVideoDxe/QemuVideoDxe.inf {
+    <LibraryClasses>
+      FrameBufferBltLib|MdeModulePkg/Library/FrameBufferBltLib/FrameBufferBltLib.inf
+      PciLib|MdePkg/Library/UefiPciLibPciRootBridgeIo/UefiPciLibPciRootBridgeIo.inf
+  }
