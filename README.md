@@ -299,63 +299,13 @@ See https://github.com/andreiw/tinycc and TCC documentation for more.
 UNIX Tools
 ----------
 
-Name | Description
----|---
-[cat](#cat) | Port of NetBSD cat
-[dd](#dd) | Port of NetBSD dd
-[grep](#grep) | Port of NetBSD grep
-[ls](#ls) | Port of NetBSD directory lister
-[stat](#stat) | Port of NetBSD stat
-
-### cat
-
-Catenate and print files. Examples of use and limitations are highlighted
-in [README.md](Applications/cat/README.md).
-
-    fs3:\> cat
-    ^D
-
-### dd
-
-Convert and copy files. Examples of use and limitations are highlighted
-in [README.md](Applications/dd/README.md).
-
-    fs3:\> dd
-    ^D
-    0+0 records in
-    0+0 records out
-    0 bytes transferred in 0.347366 secs (0 bytes/sec)
-
-### grep
-
-grep, egrep, fgrep - print lines matching a pattern. Limitations
-are highlighted in [README.md](Applications/grep/README.md).
-
-    fs3:\> memmap | grep RT_Data
-    ...
-
-### ls
-
-This is exactly what you think this is. Limitations are highlighted
-in [README.md](Applications/ls/README.md).
-
-    fs3:\> ls.efi -l -h tools
-    total 632K
-    -rwxrwxrwx  1 none  none   62K Mar 14  2017 AcpiDump.efi
-    -rwxrwxrwx  1 none  none   72K Mar 14  2017 AcpiLoader.efi
-
-### stat
-
-Display file status. Limitations are highlighted
-in [README.md](Applications/stat/README.md).
-
-    fs3:\> stat -x
-      File: "(stdin)"
-      Size: 0
-      FileType: Character Device
-      Mode: (0555/cr-xr-xr-x)
-    Access: Wed Dec 31 23:59:59 1969
-    Modify: Wed Dec 31 23:59:59 1969
+Name | Description | Notes
+---|---|---
+[cat](Applications/cat) | Port of NetBSD cat | [`README.md`](Applications/cat/README.md)
+[dd](Applications/dd) | Port of NetBSD dd | [`README.md`](Applications/dd/README.md)
+[grep](Applications/grep) | Port of NetBSD grep | [`README.md`](Applications/grep/README.md)
+[ls](Applications/ls) | Port of NetBSD directory lister | [`README.md`](Applications/ls/README.md)
+[stat](Applications/stat) | Port of NetBSD stat | [`README.md`](Applications/stat/README.md)
 
 Libraries
 ---------

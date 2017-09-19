@@ -1,4 +1,4 @@
-This is the NetBSD `ls` utility, revision 1.75.4.1.
+# NetBSD `ls` utility, revision 1.75.4.1.
 
 Really hacky port. Sorry.
 

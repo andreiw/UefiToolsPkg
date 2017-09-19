@@ -1,8 +1,18 @@
-This is the NetBSD `stat` utility, revision 1.38.
+# NetBSD `stat` utility, revision 1.38.
 
 Really hacky port. Sorry.
 
 **This tool has been only validated with the modified StdLib libraries in this distributon.**
+
+Examples:
+
+    fs3:\> stat -x
+      File: "(stdin)"
+      Size: 0
+      FileType: Character Device
+      Mode: (0555/cr-xr-xr-x)
+    Access: Wed Dec 31 23:59:59 1969
+    Modify: Wed Dec 31 23:59:59 1969
 
 Limitations (mostly of edk2 StdLib implementation):
 - No `st_dev` (%d format)

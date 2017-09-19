@@ -1,4 +1,4 @@
-This is the NetBSD `dd` utility, revision 1.51
+# NetBSD `dd` utility, revision 1.51
 
 Really hacky port. Sorry.
 

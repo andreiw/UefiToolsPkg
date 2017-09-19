@@ -1,4 +1,4 @@
-This is the NetBSD `grep` utility, revision 1.7.
+# NetBSD `grep` utility, revision 1.7.
 
 Really hacky port. Sorry.
 

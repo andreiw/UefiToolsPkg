@@ -1,4 +1,4 @@
-This is the NetBSD `cat` utility, revision 1.47.20.1
+# NetBSD `cat` utility, revision 1.47.20.1
 
 Really hacky port. Sorry.
 
