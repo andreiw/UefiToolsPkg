@@ -1,4 +1,10 @@
-Softfloat-3d for UEFI.
+# Softfloat-3d for UEFI
+
+This gives you an alternate software floating point implementation that doesn't
+rely on compiler intrinsics or arch-specific behavior. On
+certain architectures, this library also provides an implementation
+for certain missing compiler intrinsics (e.g. `__floatunditf` and
+`__fixunstfdi` on AArch64).
 
 The way this is put together, the Softfloat-3d/ directory contains a
 completely unmodified Release 3d of the Berkeley SoftFloat package.

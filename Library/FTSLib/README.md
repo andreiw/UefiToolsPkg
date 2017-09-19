@@ -1,4 +1,4 @@
-This is a port of FreeBSD `fts.c`, 05d8276  on Feb 10, 2013 (https://github.com/lattera/freebsd/)
+# FreeBSD `fts.c`, 05d8276  on Feb 10, 2013 (https://github.com/lattera/freebsd/)
 
 Really hacky port. Sorry.
 

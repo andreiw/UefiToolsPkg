@@ -65,106 +65,27 @@ Name | Description | Notes
 Libraries
 ---------
 
-Name | Description
----|---
-[UtilsLib](#utilslib) | consumed by the above utilities.
-[SoftFloatLib](#softfloatlib) | port of SoftFloat-3d to UEFI
-[FTSLib](#ftslib) | port of FTS(3) routines, file hierarchy traversal
-[RegexLib](#regexlib) | port of REGEX(3) IEEE Std 1003.2-1992 regular expression routines
-[StdExtLib](#stdextlib) | fixes and functionality on top of StdLib
-
-### UtilsLib
-
-Various useful routines.
-
-### SoftFloatLib
-
-This gives you an alternate software floating point implementation that doesn't
-rely on compiler intrinsics or arch-specific behavior. On
-certain architectures, this library also provides an implementation
-for certain missing compiler intrinsics (e.g. `__floatunditf` and
-`__fixunstfdi` on AArch64).
-
-See [`README.md`](Library/SoftFloatLib/README.md).
-
-### FTSLib
-
-Port of FTS(3) file traversal routines. These include
-`fts_open`, `fts_read`, `fts_children`, and so on. As something
-introduced in 4.4BSD, this should have been part of StdLib,
-but isn't.
-
-Don't forget to include [`Library/FTSLib.h`](Include/Library/FTSLib.h) instead of `fts.h`.
-
-Limitations are highlighted in [`README.md`](Library/FTSLib/README.md).
-
-### RegexLib
-
-Port of REGEX(3) POSIX.2 regular expression routines.
-
-Don't forget to include [`Library/RegexLib.h`](Include/Library/RegexLib.h) instead of `regex.h`.
-
-Notes are in [`README.md`](Library/RegexLib/README.md).
-
-### StdExtLib
-
-This provides functionality that should be in the edk2 StdLib, but isn't, and that
-isn't large enough to be a library on its own. This also overrides
-some broken behavior in StdLib, so be sure to include
-[`Library/StdExtLib.h`](Include/Library/StdExtLib.h) last.
-
-There also a few overrides for StdLib that fix broken StdLib
-behavior or add features. These are effectively to be treated
-as part of StdExtLib.
-
-What | Replaces | Notes
---- | --- | ---
-StdLibUefi | DevUefi | [README.md](Library/StdLibUefi/README.md)
-StdLibDevConsole | DevConsole | [README.md](Library/StdLibDevConsole/README.md)
-StdLibInteractiveIO | LibIIO | [README.md](Library/StdLibInteractiveIO/README.md)
-
-I ought to upstream at least some of these fixes. Without these fixes, the
-NetBSD tools in this collection will work even worse than they do now ;-).
+Name | Description | Notes
+---|---|---
+[UtilsLib](Library/UtilsLib) | consumed by the above utilities | None
+[SoftFloatLib](Library/SoftFloatLib) | port of SoftFloat-3d to UEFI | [`README.md`](Library/SoftFloatLib/README.md)
+[FTSLib](Library/FTSLib) | port of FTS(3) routines, file hierarchy traversal | [`README.md`](Library/FTSLib/README.md)
+[RegexLib](Library/RegexLib) | port of REGEX(3) IEEE Std 1003.2-1992 regular expression routines | [`README.md`](Library/RegexLib/README.md)
+[StdExtLib](Library/StdExtLib) | fixes and functionality on top of StdLib |  [`README.md`](Library/StdExtLib/README.md)
 
 Drivers
 -------
 
 What | Description | Platform | Notes
 --- | --- | --- | ---
-QemuVideoDxe | GOP driver for QEMU | OVMF, ArmVirtPkg | [README.md](Drivers/QemuVideoDxe/README.md)
+[QemuVideoDxe](Drivers/QemuVideoDxe) | GOP driver for QEMU | OVMF, ArmVirtPkg | [`README.md`](Drivers/QemuVideoDxe/README.md)
 
 Development Tools
 -----------------
 
-Name | Description
----|---
-[gdb_uefi.py](#gdb_uefipy) | load TianoCore symbols in gdb
-
-### gdb_uefi.py
-
-Allows loading TianoCore symbols into a GDB remote
-debugging session.
-
-Last validated with GDB 7.10.
-
-This is how it works: `GdbSyms.efi` is a dummy binary that
-contains the relevant symbols needed by the script
-to find and load image symbols. `GdbSyms.efi` does not
-need to be present on the target!
-
-    $ gdb /path/to/GdbSyms.dll
-    (gdb) target remote ....
-    (gdb) source Scripts/gdb_uefi.py
-    (gdb) reload-uefi -o /path/to/GdbSyms.dll
-
-N.B: it was noticed that GDB for certain targets behaves strangely
-when run without any binary - like assuming a certain physical
-address space size and endianness. To avoid this madness and
-seing strange bugs, make sure to pass `/path/to/GdbSyms.dll`
-when starting gdb.
-
-The `-o` option should be used if you've debugging EFI, where the PE
-images were converted from MACH-O or ELF binaries.
+Name | Description | Notes
+---|---|---
+[gdb_uefi.py](Scripts/GdbUefi) | load TianoCore symbols in gdb | [`README.md`](Scripts/GdbUefi/README.md)
 
 Contact Info
 ------------
