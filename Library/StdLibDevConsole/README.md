@@ -1,6 +1,6 @@
 This is a fixed-up version of edk2's `StdLib/LibC/Uefi/Devices/Console`.
 
-NOTE: [`StdLibDevConsole`](../StdLibDevConsole), [`StdLibInteractiveIO`](../StdLibInteractiveIO) and [`StdLibUefi`](../StdLibUefi) all go together.
+NOTE: [`StdExtLib`](../StdExtLib), [`StdLibDevConsole`](../StdLibDevConsole), [`StdLibInteractiveIO`](../StdLibInteractiveIO) and [`StdLibUefi`](../StdLibUefi) all go together.
 
 Differences:
 - if StdErr isn't redirected via Shell to a file, redirect it out to ConOut.

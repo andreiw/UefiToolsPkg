@@ -25,6 +25,7 @@
   SoftFloatLib.h|Include/Library/SoftFloatLib.h
   FTSLib|Include/Library/FTSLib.h
   StdExtLib|Include/Library/StdExtLib.h
+  RegexLib|Include/Library/RegexLib.h
 
 [Guids]
   gUefiToolsPkgTokenSpaceGuid    = { 0xaba2deb5, 0x7607, 0x4a78, { 0xa7, 0xdd, 0x43, 0xe4, 0xbd, 0x72, 0xc0, 0x99 }}

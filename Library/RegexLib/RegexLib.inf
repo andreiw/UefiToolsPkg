@@ -1,5 +1,6 @@
 #
-# Copyright (C) 2017 Andrei Evgenievich Warkentin
+# Time-stamp: <2016-06-11 00:40:05 andreiw>
+# Copyright (C) 2016 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
 # are licensed and made available under the terms and conditions of the BSD License
@@ -12,22 +13,18 @@
 
 [Defines]
   INF_VERSION                    = 0x00010005
-  BASE_NAME                      = StdExtLib
-  FILE_GUID                      = ddcbcbc1-bb25-11df-8e4e-0002a5d5c51c
+  BASE_NAME                      = RegexLib
+  FILE_GUID                      = ddbacbb1-bb25-11df-8e4f-0002a5d5432d
   MODULE_TYPE                    = BASE
   VERSION_STRING                 = 1.0
-  LIBRARY_CLASS                  = StdExtLib
+  LIBRARY_CLASS                  = RegexLib
 
 [Sources]
-  strmode.c
-  humanize.c
-  toascii.c
-  strsuftoll.c
-  swab.c
-  reallocarr.c
-  getopt_long.c
-  getline.c
-  fnmatch.c
+  regcomp.c
+  regerror.c
+  regexec.c
+  regfree.c
+  regsub.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -37,6 +34,7 @@
 
 [LibraryClasses]
   LibC
+  LibStdio
 
 [Guids]
 

@@ -1,7 +1,7 @@
 This is a fixed-up version of edk2's `StdLib/LibC/Uefi/InteractiveIO`, the
 line discipline porition of StdLib.
 
-NOTE: [`StdLibDevConsole`](../StdLibDevConsole), [`StdLibInteractiveIO`](../StdLibInteractiveIO) and [`StdLibUefi`](../StdLibUefi) all go together.
+NOTE: [`StdExtLib`](../StdExtLib), [`StdLibDevConsole`](../StdLibDevConsole), [`StdLibInteractiveIO`](../StdLibInteractiveIO) and [`StdLibUefi`](../StdLibUefi) all go together.
 
 Differences:
 - Honor `c_cc[VEOF]` as `WEOF`, breaking out of input on `^D`.

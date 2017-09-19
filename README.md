@@ -300,10 +300,38 @@ UNIX Tools
 
 Name | Description
 ---|---
+[cat](#cat) | Port of NetBSD cat
+[dd](#dd) | Port of NetBSD dd
+[grep](#grep) | Port of NetBSD grep
 [ls](#ls) | Port of NetBSD directory lister
 [stat](#stat) | Port of NetBSD stat
-[cat](#cat) | Port of NetBSD cat
-[dd](#d) | Port of NetBSD dd
+
+### cat
+
+Catenate and print files. Examples of use and limitations are highlighted
+in [README.md](Applications/cat/README.md).
+
+    fs3:\> cat
+    ^D
+
+### dd
+
+Convert and copy files. Examples of use and limitations are highlighted
+in [README.md](Applications/dd/README.md).
+
+    fs3:\> dd
+    ^D
+    0+0 records in
+    0+0 records out
+    0 bytes transferred in 0.347366 secs (0 bytes/sec)
+
+### grep
+
+grep, egrep, fgrep - print lines matching a pattern. Limitations
+are highlighted in [README.md](Applications/grep/README.md).
+
+    fs3:\> memmap | grep RT_Data
+    ...
 
 ### ls
 
@@ -328,25 +356,6 @@ in [README.md](Applications/stat/README.md).
     Access: Wed Dec 31 23:59:59 1969
     Modify: Wed Dec 31 23:59:59 1969
 
-### cat
-
-Catenate and print files. Examples of use and limitations are highlighted
-in [README.md](Applications/cat/README.md).
-
-    fs3:\> cat
-    ^D
-
-### dd
-
-Convert and copy files. Examples of use and limitations are highlighted
-in [README.md](Applications/dd/README.md).
-
-    fs3:\> dd
-    ^D
-    0+0 records in
-    0+0 records out
-    0 bytes transferred in 0.347366 secs (0 bytes/sec)
-
 Libraries
 ---------
 
@@ -355,6 +364,7 @@ Name | Description
 [UtilsLib](#utilslib) | consumed by the above utilities.
 [SoftFloatLib](#softfloatlib) | port of SoftFloat-3d to UEFI
 [FTSLib](#ftslib) | port of FTS(3) routines, file hierarchy traversal
+[RegexLib](#regexlib) | port of REGEX(3) IEEE Std 1003.2-1992 regular expression routines
 [StdExtLib](#stdextlib) | fixes and functionality on top of StdLib
 
 ### UtilsLib
@@ -382,6 +392,14 @@ Don't forget to include [`Library/FTSLib.h`](Include/Library/FTSLib.h) instead o
 
 Limitations are highlighted in [`README.md`](Library/FTSLib/README.md).
 
+### RegexLib
+
+Port of REGEX(3) POSIX.2 regular expression routines.
+
+Don't forget to include [`Library/RegexLib.h`](Include/Library/RegexLib.h) instead of `regex.h`.
+
+Notes are in [`README.md`](Library/RegexLib/README.md).
+
 ### StdExtLib
 
 This provides functionality that should be in the edk2 StdLib, but isn't, and that
@@ -390,8 +408,8 @@ some broken behavior in StdLib, so be sure to include
 [`Library/StdExtLib.h`](Include/Library/StdExtLib.h) last.
 
 There also a few overrides for StdLib that fix broken StdLib
-behavior or add features. These are highly suggested to be used,
-and so effectively should be treated like a part of StdExtLib.
+behavior or add features. These are effectively to be treated
+as part of StdExtLib.
 
 What | Replaces | Notes
 --- | --- | ---
