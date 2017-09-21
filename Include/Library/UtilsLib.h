@@ -69,4 +69,9 @@ RangeIsMapped (
                IN BOOLEAN WarnIfNotFound
                );
 
+CHAR16 *
+StrDuplicate (
+              IN CONST CHAR16 *Src
+              );
+
 #endif /* _UTILS_LIB_H_ */

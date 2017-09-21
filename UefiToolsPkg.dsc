@@ -1,6 +1,6 @@
 #
-# Time-stamp: <2017-09-19 02:00:12 andreiw>
-# Copyright (C) 2016 Andrei Evgenievich Warkentin
+# Time-stamp: <2017-09-21 01:57:36 andreiw>
+# Copyright (C) 2017 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
 # are licensed and made available under the terms and conditions of the BSD License
@@ -91,6 +91,7 @@
   UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
   HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
   ShellLib|ShellPkg/Library/UefiShellLib/UefiShellLib.inf
+  HandleParsingLib|ShellPkg/Library/UefiHandleParsingLib/UefiHandleParsingLib.inf
   #
   # StdLib deps.
   #
@@ -106,9 +107,11 @@
   UefiToolsPkg/Applications/AcpiLoader/AcpiLoader.inf
   UefiToolsPkg/Applications/ShellPlatVars/ShellPlatVars.inf
   UefiToolsPkg/Applications/ShellErrVars/ShellErrVars.inf
+  UefiToolsPkg/Applications/ShellMapVar/ShellMapVar.inf
   UefiToolsPkg/Applications/MemResv/MemResv.inf
   UefiToolsPkg/Applications/RangeIsMapped/RangeIsMapped.inf
   UefiToolsPkg/Applications/GopTool/GopTool.inf
+  UefiToolsPkg/Applications/SetCon/SetCon.inf
   UefiToolsPkg/Applications/ls/ls.inf
   UefiToolsPkg/Applications/stat/stat.inf
   UefiToolsPkg/Applications/cat/cat.inf

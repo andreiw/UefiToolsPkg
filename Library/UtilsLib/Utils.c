@@ -312,3 +312,21 @@ StriCmp (
 
   return UpperFirstString - UpperSecondString;
 }
+
+CHAR16 *
+StrDuplicate (
+              IN CONST CHAR16 *Src
+              )
+{
+  CHAR16 *Dest;
+  UINTN Size;
+
+  Size = StrSize (Src);
+  Dest = AllocateZeroPool (Size);
+
+  if (Dest != NULL) {
+    CopyMem (Dest, Src, Size);
+  }
+
+  return Dest;
+}

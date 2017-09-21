@@ -608,9 +608,9 @@ format1(const struct stat *st,
     int flags, int size, int prec, int ofmt,
     int hilo, int what, int quiet)
 {
-	u_int64_t data;
+	u_int64_t data = 0;
 	char *stmp, lfmt[24], tmp[20];
-	const char *sdata;
+	const char *sdata = NULL;
 	char smode[12], /* sid[12], */ path[PATH_MAX + 4]/*, visbuf[PATH_MAX * 4 + 4] */;
 	/* struct passwd *pw; */
 	/* struct group *gr; */

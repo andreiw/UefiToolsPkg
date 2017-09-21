@@ -37,9 +37,9 @@ UefiMain (
 
 {
   UINTN GopIndex;
-  UINTN GopSelect;
   UINTN GopCount = 0;
   UINTN NewFBase = 0;
+  UINTN GopSelect = 0;
   BOOLEAN HaveNewFBase = FALSE;
   BOOLEAN GopSelected = FALSE;
   EFI_HANDLE *GopHandles = NULL;

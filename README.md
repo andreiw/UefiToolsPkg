@@ -46,9 +46,11 @@ Name | Description | Notes
 [AcpiLoader](Applications/AcpiLoader) | load system ACPI tables from storage | [`README.md`](Applications/AcpiLoader/README.md)
 [ShellPlatVars](Applications/ShellPlatVars) | set UEFI Shell variables based on platform configuration | [`README.md`](Applications/ShellPlatVars/README.md)
 [ShellErrVars](Applications/ShellErrVars) | set UEFI Shell variables to look up EFI RETURN_STATUS values | [`README.md`](Applications/ShellErrVars/README.md)
+[ShellMapVar](Applications/ShellMapVar) | set `%mapvar%` with own current device mapping | [`README.md`](Applications/ShellMapVar/README.md)
 [MemResv](Applications/MemResv) | create new memory map entries | [`README.md`](Applications/MemResv/README.md)
 [RangeIsMapped](Applications/RangeIsMapped) | validates ranges in the memory map | [`README.md`](Applications/RangeIsMapped/README.md)
 [GopTool](Applications/GopTool) | check and manipulate EFI_GRAPHICS_OUTPUT_PROTOCOL instances | [`README.md`](Applications/GopTool/README.md)
+[SetCon](Applications/SetCon) | check and manipulate console device variables | [`README.md`](Applications/SetCon/README.md)
 [tinycc](https://github.com/andreiw/tinycc) | port of TinyCC to UEFI | [`README.md`](https://github.com/andreiw/tinycc/blob/mob/README.md#tcc-in-uefi)
 
 UNIX Tools
