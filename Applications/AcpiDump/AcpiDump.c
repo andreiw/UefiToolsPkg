@@ -1,4 +1,4 @@
-/* Time-stamp: <2016-06-21 23:42:06 andreiw>
+/* Time-stamp: <2017-09-22 01:30:27 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -17,7 +17,6 @@
 
 #include <IndustryStandard/Acpi.h>
 #include <Protocol/LoadedImage.h>
-#include <Protocol/EfiShellParameters.h>
 
 #include <Guid/Acpi.h>
 
@@ -88,6 +87,8 @@ UefiMain (
           )
 {
   UINTN i;
+  UINTN Argc;
+  CHAR16 **Argv;
   EFI_STATUS Status;
   UINTN SdtEntrySize;
   EFI_PHYSICAL_ADDRESS SdtTable;
@@ -96,7 +97,6 @@ UefiMain (
   EFI_ACPI_DESCRIPTION_HEADER *Xsdt;
   EFI_LOADED_IMAGE_PROTOCOL *ImageProtocol;
   EFI_ACPI_5_0_ROOT_SYSTEM_DESCRIPTION_POINTER *Rsdp;
-  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
   CHAR16 *VolSubDir;
 
   EFI_GUID AcpiGuids[2] = {
@@ -105,13 +105,14 @@ UefiMain (
   };
 
   VolSubDir = L".";
-  Status = gBS->HandleProtocol (ImageHandle, &gEfiShellParametersProtocolGuid, (VOID **) &ShellParameters);
-  if (Status == EFI_SUCCESS && ShellParameters->Argc > 1) {
-    VolSubDir = ShellParameters->Argv[1];
+  Status = GetShellArgcArgv(ImageHandle, &Argc, &Argv);
+  if (Status == EFI_SUCCESS && Argc > 1) {
+    VolSubDir = Argv[1];
   }
   Print(L"Dumping tables to '\\%s'\n", VolSubDir);
 
-  Status = gBS->HandleProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (void **) &ImageProtocol);
+  Status = gBS->HandleProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid,
+                                (void **) &ImageProtocol);
   if (Status != EFI_SUCCESS) {
     Print(L"Could not get loaded image device handle: %r\n", Status);
     return Status;

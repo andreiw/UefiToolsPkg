@@ -51,4 +51,3 @@
 [Protocols]
   gEfiSimpleTextInProtocolGuid        ## CONSUMED
   gEfiSimpleTextOutProtocolGuid       ## CONSUMED
-  gEfiShellParametersProtocolGuid

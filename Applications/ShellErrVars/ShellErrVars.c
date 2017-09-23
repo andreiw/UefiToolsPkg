@@ -16,7 +16,6 @@
 #include <Library/ShellLib.h>
 #include <Library/PrintLib.h>
 #include <Library/UefiBootServicesTableLib.h>
-#include <Protocol/EfiShellParameters.h>
 
 typedef struct ERR_VAR {
   CHAR8 *Name;
@@ -86,30 +85,27 @@ UefiMain (
           )
 {
   UINTN i;
+  UINTN Argc;
+  CHAR16 **Argv;
   EFI_STATUS Status;
+  EFI_STATUS Status2;
   BOOLEAN InteractiveVars;
   GET_OPT_CONTEXT GetOptContext;
-  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
   CHAR16 ValString[5 + 2 + 16 + 1]; /* 0x[16 hex chars]\0 or evar_0x[16 hex chars]\0 */
   CHAR16 NameString[5 + 30 + 1]; /* evar_RETURN_XXX\0 or RETURN_XXX\0 */
 
   Status = ShellInitialize();
-  if (EFI_ERROR(Status)) {
-    Print(L"This program requires Microsoft Windows. Just kidding...only the UEFI Shell!\n");
-    return EFI_ABORTED;
-  }
-
-  Status = gBS->HandleProtocol(ImageHandle, &gEfiShellParametersProtocolGuid,
-                               (VOID **) &ShellParameters);
-  if (Status != EFI_SUCCESS || ShellParameters->Argc < 1) {
-    Print(L"This program requires a newer UEFI Shell!\n");
+  Status2 = GetShellArgcArgv(ImageHandle, &Argc, &Argv);
+  if (EFI_ERROR(Status) || EFI_ERROR(Status2)) {
+    Print(L"This program requires Microsoft Windows.\n"
+          "Just kidding...only the UEFI Shell!\n");
     return EFI_ABORTED;
   }
 
   InteractiveVars = FALSE;
   INIT_GET_OPT_CONTEXT(&GetOptContext);
-  while ((Status = GetOpt(ShellParameters->Argc,
-                          ShellParameters->Argv, NULL,
+  while ((Status = GetOpt(Argc,
+                          Argv, NULL,
                           &GetOptContext)) == EFI_SUCCESS) {
     switch (GetOptContext.Opt) {
     case L'i':
@@ -117,7 +113,7 @@ UefiMain (
       break;
     default:
       Print(L"Unknown option '%c'\n", GetOptContext.Opt);
-      return Usage(ShellParameters->Argv[0]);
+      return Usage(Argv[0]);
     }
   }
 
@@ -168,5 +164,5 @@ UefiMain (
     }
   }
 
-  return Status;
+  return EFI_SUCCESS;
 }

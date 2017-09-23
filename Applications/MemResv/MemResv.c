@@ -1,4 +1,4 @@
-/* Time-stamp: <2016-06-11 01:03:15 andreiw>
+/* Time-stamp: <2017-09-23 00:06:58 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -16,8 +16,6 @@
 #include <Pi/PiDxeCis.h>
 #include <Library/UtilsLib.h>
 
-#include <Protocol/EfiShellParameters.h>
-
 EFI_STATUS
 EFIAPI
 UefiMain (
@@ -25,12 +23,13 @@ UefiMain (
           IN EFI_SYSTEM_TABLE *SystemTable
           )
 {
+  UINTN Argc;
+  CHAR16 **Argv;
   UINTN RangeStart;
   UINTN RangeLength;
   EFI_STATUS Status;
   EFI_MEMORY_TYPE type;
   EFI_DXE_SERVICES *DS = NULL;
-  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
 
   EfiGetSystemConfigurationTable(&gEfiDxeServicesTableGuid, (VOID **) &DS);
   if (DS == NULL) {
@@ -38,19 +37,20 @@ UefiMain (
     return EFI_ABORTED;
   }
 
-  Status = gBS->HandleProtocol(ImageHandle, &gEfiShellParametersProtocolGuid, (VOID **) &ShellParameters);
-  if (Status != EFI_SUCCESS || ShellParameters->Argc < 1) {
-    Print(L"This program requires Microsoft Windows. Just kidding...only the UEFI Shell!\n");
+  Status = GetShellArgcArgv(ImageHandle, &Argc, &Argv);
+  if (Status != EFI_SUCCESS || Argc < 1) {
+    Print(L"This program requires Microsoft Windows.\n"
+          "Just kidding...only the UEFI Shell!\n");
     return EFI_ABORTED;
   }
 
-  if (ShellParameters->Argc < 3) {
-    Print(L"Usage: %s range-start range-pages [mmio]\n", ShellParameters->Argv[0]);
+  if (Argc < 3) {
+    Print(L"Usage: %s range-start range-pages [mmio]\n", Argv[0]);
     return EFI_INVALID_PARAMETER;
   }
 
-  RangeStart = StrHexToUintn(ShellParameters->Argv[1]);
-  RangeLength = StrHexToUintn(ShellParameters->Argv[2]) << EFI_PAGE_SHIFT;
+  RangeStart = StrHexToUintn(Argv[1]);
+  RangeLength = StrHexToUintn(Argv[2]) << EFI_PAGE_SHIFT;
 
   if (RangeLength == 0 ||
       (RangeStart + RangeLength) < RangeStart) {
@@ -59,8 +59,8 @@ UefiMain (
   }
 
   type = EfiReservedMemoryType;
-  if (ShellParameters->Argc == 4) {
-    if (!StriCmp(ShellParameters->Argv[3], L"mmio")) {
+  if (Argc == 4) {
+    if (!StriCmp(Argv[3], L"mmio")) {
       type = EfiMemoryMappedIO;
     } else {
       Print(L"Warning: Unknown range type, assuming reserved\n");

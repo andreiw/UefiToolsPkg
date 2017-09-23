@@ -1,4 +1,4 @@
-/* Time-stamp: <2017-03-13 12:47:23 andreiw>
+/* Time-stamp: <2017-09-23 00:04:55 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -18,7 +18,6 @@
 #include <IndustryStandard/Acpi.h>
 #include <Protocol/SimpleFileSystem.h>
 #include <Protocol/LoadedImage.h>
-#include <Protocol/EfiShellParameters.h>
 
 #include <Guid/FileInfo.h>
 #include <Guid/Acpi.h>
@@ -155,9 +154,10 @@ UefiMain (
           )
 {
   UINTN i;
+  UINTN Argc;
+  CHAR16 **Argv;
   EFI_STATUS Status;
   EFI_LOADED_IMAGE_PROTOCOL *ImageProtocol;
-  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
   CHAR16 *VolSubDir;
 
   EFI_GUID AcpiGuids[2] = {
@@ -166,9 +166,9 @@ UefiMain (
   };
 
   VolSubDir = L".";
-  Status = gBS->HandleProtocol (ImageHandle, &gEfiShellParametersProtocolGuid, (VOID **) &ShellParameters);
-  if (Status == EFI_SUCCESS && ShellParameters->Argc > 1) {
-    VolSubDir = ShellParameters->Argv[1];
+  Status = GetShellArgcArgv(ImageHandle, &Argc, &Argv);
+  if (Status == EFI_SUCCESS && Argc > 1) {
+    VolSubDir = Argv[1];
   }
   Print(L"Loading tables from '\\%s'\n", VolSubDir);
 

@@ -13,7 +13,6 @@
 #include <Uefi.h>
 #include <Library/UefiLib.h>
 #include <Library/UtilsLib.h>
-#include <Protocol/EfiShellParameters.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
@@ -183,19 +182,19 @@ UefiMain (
   BOOLEAN Set;
   BOOLEAN Append;
   BOOLEAN Auto;
+  UINTN Argc;
+  CHAR16 **Argv;
   EFI_STATUS Status;
   CHAR16 *VarName;
   UINT32 CurrentAttributes;
   EFI_DEVICE_PATH_PROTOCOL *Path;
   EFI_DEVICE_PATH_PROTOCOL *CurrentPath;
-  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
   GET_OPT_CONTEXT GetOptContext;
 
-  Status = gBS->HandleProtocol (ImageHandle,
-                                &gEfiShellParametersProtocolGuid,
-                                (VOID **) &ShellParameters);
-  if (Status != EFI_SUCCESS || ShellParameters->Argc < 1) {
-    Print (L"This program requires Microsoft Windows. Just kidding...only the UEFI Shell!\n");
+  Status = GetShellArgcArgv(ImageHandle, &Argc, &Argv);
+  if (Status != EFI_SUCCESS || Argc < 1) {
+    Print(L"This program requires Microsoft Windows.\n"
+          "Just kidding...only the UEFI Shell!\n");
     return EFI_ABORTED;
   }
 
@@ -204,13 +203,12 @@ UefiMain (
   Auto = FALSE;
   Path = NULL;
   INIT_GET_OPT_CONTEXT (&GetOptContext);
-  while ((Status = GetOpt (ShellParameters->Argc,
-                           ShellParameters->Argv, L"ihp",
+  while ((Status = GetOpt (Argc, Argv, L"ihp",
                            &GetOptContext)) == EFI_SUCCESS) {
     switch (GetOptContext.Opt) {
     case L'A':
       if (Set || Append) {
-        return Usage (ShellParameters->Argv[0]);
+        return Usage (Argv[0]);
       }
 
       Auto = TRUE;
@@ -219,14 +217,14 @@ UefiMain (
     case L'a':
 
       if (Auto) {
-        return Usage (ShellParameters->Argv[0]);
+        return Usage (Argv[0]);
       }
 
       Append = TRUE;
       break;
     case L'p': {
       if (GetOptContext.OptArg == NULL || Set || Auto) {
-        return Usage (ShellParameters->Argv[0]);
+        return Usage (Argv[0]);
       }
 
       Path = ConvertTextToDevicePath (GetOptContext.OptArg);
@@ -242,7 +240,7 @@ UefiMain (
       EFI_HANDLE Handle;
 
       if (GetOptContext.OptArg == NULL || Set || Auto) {
-        return Usage (ShellParameters->Argv[0]);
+        return Usage (Argv[0]);
       }
 
       Handle = (void *) StrHexToUintn (GetOptContext.OptArg);
@@ -262,7 +260,7 @@ UefiMain (
       EFI_HANDLE Handle;
 
       if (GetOptContext.OptArg == NULL || Set || Auto) {
-        return Usage (ShellParameters->Argv[0]);
+        return Usage (Argv[0]);
       }
 
       HandleIndex = StrHexToUintn (GetOptContext.OptArg);
@@ -284,16 +282,16 @@ UefiMain (
     }
     default:
       Print (L"Unknown option '%c'\n", GetOptContext.Opt);
-      return Usage (ShellParameters->Argv[0]);
+      return Usage (Argv[0]);
     }
   }
 
-  if (ShellParameters->Argc - GetOptContext.OptIndex < 1) {
-    return Usage (ShellParameters->Argv[0]);
+  if (Argc - GetOptContext.OptIndex < 1) {
+    return Usage (Argv[0]);
   }
 
   CurrentPath = NULL;
-  VarName = ShellParameters->Argv[GetOptContext.OptIndex + 0];
+  VarName = Argv[GetOptContext.OptIndex + 0];
   Status = GetVarPath(VarName, &CurrentPath, &CurrentAttributes);
   if (Status != EFI_SUCCESS) {
     Print (L"Error reading variable '%s': %r\n", VarName, Status);

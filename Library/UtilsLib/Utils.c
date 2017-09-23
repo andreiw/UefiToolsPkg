@@ -18,6 +18,9 @@
 #include <Protocol/SimpleFileSystem.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/MemoryAllocationLib.h>
+#include <Protocol/LoadedImage.h>
+#include <Protocol/EfiShellInterface.h>
+#include <Protocol/ShellParameters.h>
 #include <Guid/FileInfo.h>
 
 EFI_STATUS
@@ -329,4 +332,50 @@ StrDuplicate (
   }
 
   return Dest;
+}
+
+EFI_STATUS
+GetShellArgcArgv(
+                 IN  EFI_HANDLE ImageHandle,
+                 OUT UINTN *Argcp,
+                 OUT CHAR16 ***Argvp
+                 )
+{
+  EFI_STATUS Status;
+  EFI_SHELL_PARAMETERS_PROTOCOL *EfiShellParametersProtocol;
+  EFI_SHELL_INTERFACE           *EfiShellInterface;
+
+  Status = gBS->OpenProtocol(ImageHandle,
+                             &gEfiShellParametersProtocolGuid,
+                             (VOID **)&EfiShellParametersProtocol,
+                             ImageHandle,
+                             NULL,
+                             EFI_OPEN_PROTOCOL_GET_PROTOCOL
+                             );
+  if (!EFI_ERROR(Status)) {
+    /*
+     * Shell 2.0 interface.
+     */
+    *Argcp = EfiShellParametersProtocol->Argc;
+    *Argvp = EfiShellParametersProtocol->Argv;
+    return EFI_SUCCESS;
+  }
+
+  Status = gBS->OpenProtocol(ImageHandle,
+                             &gEfiShellInterfaceGuid,
+                             (VOID **)&EfiShellInterface,
+                             ImageHandle,
+                             NULL,
+                             EFI_OPEN_PROTOCOL_GET_PROTOCOL
+                             );
+  if (!EFI_ERROR(Status)) {
+    /*
+     * 1.0 interface.
+     */
+    *Argcp = EfiShellInterface->Argc;
+    *Argvp = EfiShellInterface->Argv;
+    return EFI_SUCCESS;
+  }
+
+  return EFI_NOT_FOUND;
 }

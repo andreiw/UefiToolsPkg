@@ -1,4 +1,4 @@
-/* Time-stamp: <2016-06-11 01:03:15 andreiw>
+/* Time-stamp: <2017-09-23 00:12:39 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -17,7 +17,6 @@
 #include <libfdt.h>
 
 #include <Protocol/LoadedImage.h>
-#include <Protocol/EfiShellParameters.h>
 #include <Guid/Fdt.h>
 
 EFI_STATUS
@@ -27,16 +26,17 @@ UefiMain (
           IN EFI_SYSTEM_TABLE *SystemTable
           )
 {
+  UINTN Argc;
+  CHAR16 **Argv;
   EFI_STATUS Status;
   EFI_LOADED_IMAGE_PROTOCOL *ImageProtocol;
-  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
   CHAR16 *VolSubDir;
   VOID *Fdt;
 
   VolSubDir = L".";
-  Status = gBS->HandleProtocol (ImageHandle, &gEfiShellParametersProtocolGuid, (VOID **) &ShellParameters);
-  if (Status == EFI_SUCCESS && ShellParameters->Argc > 1) {
-    VolSubDir = ShellParameters->Argv[1];
+  Status = GetShellArgcArgv(ImageHandle, &Argc, &Argv);
+  if (Status == EFI_SUCCESS && Argc > 1) {
+    VolSubDir = Argv[1];
   }
   Print(L"Dumping FDT to '\\%s'\n", VolSubDir);
 

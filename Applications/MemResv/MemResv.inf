@@ -1,5 +1,5 @@
 #
-# Time-stamp: <2017-03-14 00:49:15 andreiw>
+# Time-stamp: <2017-09-23 00:06:05 andreiw>
 # Copyright (C) 2017 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
@@ -24,7 +24,6 @@
 
 [Packages]
   MdePkg/MdePkg.dec
-  ShellPkg/ShellPkg.dec
   UefiToolsPkg/UefiToolsPkg.dec
 
 [LibraryClasses]
@@ -35,4 +34,3 @@
   gEfiDxeServicesTableGuid
 
 [Protocols]
-  gEfiShellParametersProtocolGuid

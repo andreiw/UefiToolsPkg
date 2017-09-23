@@ -17,7 +17,6 @@
 #include <Library/UtilsLib.h>
 #include <Protocol/PciIo.h>
 #include <Protocol/DevicePath.h>
-#include <Protocol/EfiShellParameters.h>
 
 EFI_STATUS
 Usage (
@@ -36,6 +35,8 @@ UefiMain (
           )
 
 {
+  UINTN Argc;
+  CHAR16 **Argv;
   UINTN GopIndex;
   UINTN GopCount = 0;
   UINTN NewFBase = 0;
@@ -45,20 +46,18 @@ UefiMain (
   EFI_HANDLE *GopHandles = NULL;
   EFI_GRAPHICS_OUTPUT_PROTOCOL *Gop = NULL;
   EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *Mode = NULL;
-  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
   GET_OPT_CONTEXT GetOptContext;
   EFI_STATUS Status;
 
-  Status = gBS->HandleProtocol(ImageHandle, &gEfiShellParametersProtocolGuid,
-                               (VOID **) &ShellParameters);
-  if (Status != EFI_SUCCESS || ShellParameters->Argc < 1) {
-     Print(L"This program requires Microsoft Windows. Just kidding...only the UEFI Shell!\n");
-     return EFI_ABORTED;
+  Status = GetShellArgcArgv(ImageHandle, &Argc, &Argv);
+  if (Status != EFI_SUCCESS || Argc < 1) {
+    Print(L"This program requires Microsoft Windows.\n"
+          "Just kidding...only the UEFI Shell!\n");
+    return EFI_ABORTED;
   }
 
   INIT_GET_OPT_CONTEXT(&GetOptContext);
-  while ((Status = GetOpt(ShellParameters->Argc,
-                          ShellParameters->Argv, L"ib",
+  while ((Status = GetOpt(Argc, Argv, L"ib",
                           &GetOptContext)) == EFI_SUCCESS) {
     switch (GetOptContext.Opt) {
     case L'i':
@@ -71,12 +70,12 @@ UefiMain (
       break;
     default:
       Print(L"Unknown option '%c'\n", GetOptContext.Opt);
-      return Usage(ShellParameters->Argv[0]);
+      return Usage(Argv[0]);
     }
   }
 
   if (HaveNewFBase && !GopSelected) {
-    return Usage(ShellParameters->Argv[0]);
+    return Usage(Argv[0]);
   }
 
   Status = gBS->LocateHandleBuffer(ByProtocol, &gEfiGraphicsOutputProtocolGuid,

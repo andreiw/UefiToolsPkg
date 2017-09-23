@@ -1,4 +1,4 @@
-/* Time-stamp: <2017-03-11 01:03:15 andreiw>
+/* Time-stamp: <2017-09-23 00:11:14 andreiw>
  * Copyright (C) 2017 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -392,7 +392,8 @@ UefiMain (
 
   Status = ShellInitialize();
   if (EFI_ERROR(Status)) {
-    Print(L"This program requires Microsoft Windows. Just kidding...only the UEFI Shell!\n");
+    Print(L"This program requires Microsoft Windows.\n"
+          "Just kidding...only the UEFI Shell!\n");
     return EFI_ABORTED;
   }
 

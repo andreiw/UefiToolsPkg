@@ -74,4 +74,11 @@ StrDuplicate (
               IN CONST CHAR16 *Src
               );
 
+EFI_STATUS
+GetShellArgcArgv(
+                 IN  EFI_HANDLE ImageHandle,
+                 OUT UINTN *Argcp,
+                 OUT CHAR16 ***Argvp
+                 );
+
 #endif /* _UTILS_LIB_H_ */

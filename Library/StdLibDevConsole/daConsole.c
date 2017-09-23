@@ -869,6 +869,8 @@ __Cons_construct(
   Status = gBS->HandleProtocol(ImageHandle, &gEfiShellParametersProtocolGuid,
                                (VOID **) &ShellParameters);
   if (Status != EFI_SUCCESS) {
+    SystemTable->ConOut->OutputString(SystemTable->ConOut,
+                                      L"UEFI 2.0 Shell required, sorry.\r\n");
     return Status;
   }
 

@@ -1,4 +1,4 @@
-/* Time-stamp: <2016-06-11 01:03:15 andreiw>
+/* Time-stamp: <2017-09-23 00:03:13 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -14,7 +14,6 @@
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UtilsLib.h>
-#include <Protocol/EfiShellParameters.h>
 
 EFI_STATUS
 Usage (
@@ -32,24 +31,24 @@ UefiMain (
           IN EFI_SYSTEM_TABLE *SystemTable
           )
 {
+  UINTN Argc;
+  CHAR16 **Argv;
   BOOLEAN Quiet;
   UINTN RangeStart;
   UINTN RangeLength;
   EFI_STATUS Status;
-  EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
   GET_OPT_CONTEXT GetOptContext;
 
-  Status = gBS->HandleProtocol(ImageHandle, &gEfiShellParametersProtocolGuid,
-                               (VOID **) &ShellParameters);
-  if (Status != EFI_SUCCESS || ShellParameters->Argc < 1) {
-    Print(L"This program requires Microsoft Windows. Just kidding...only the UEFI Shell!\n");
+  Status = GetShellArgcArgv(ImageHandle, &Argc, &Argv);
+  if (Status != EFI_SUCCESS || Argc < 1) {
+    Print(L"This program requires Microsoft Windows.\n"
+          "Just kidding...only the UEFI Shell!\n");
     return EFI_ABORTED;
   }
 
   Quiet = FALSE;
   INIT_GET_OPT_CONTEXT(&GetOptContext);
-  while ((Status = GetOpt(ShellParameters->Argc,
-                          ShellParameters->Argv, NULL,
+  while ((Status = GetOpt(Argc, Argv, NULL,
                           &GetOptContext)) == EFI_SUCCESS) {
     switch (GetOptContext.Opt) {
     case L'q':
@@ -57,16 +56,16 @@ UefiMain (
       break;
     default:
       Print(L"Unknown option '%c'\n", GetOptContext.Opt);
-      return Usage(ShellParameters->Argv[0]);
+      return Usage(Argv[0]);
     }
   }
 
-  if (ShellParameters->Argc - GetOptContext.OptIndex < 2) {
-    return Usage(ShellParameters->Argv[0]);
+  if (Argc - GetOptContext.OptIndex < 2) {
+    return Usage(Argv[0]);
   }
 
-  RangeStart = StrHexToUintn(ShellParameters->Argv[GetOptContext.OptIndex + 0]);
-  RangeLength = StrHexToUintn(ShellParameters->Argv[GetOptContext.OptIndex + 1]);
+  RangeStart = StrHexToUintn(Argv[GetOptContext.OptIndex + 0]);
+  RangeLength = StrHexToUintn(Argv[GetOptContext.OptIndex + 1]);
 
   if (RangeLength == 0 ||
       (RangeStart + RangeLength) < RangeStart) {
