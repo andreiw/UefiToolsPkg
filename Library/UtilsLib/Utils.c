@@ -133,30 +133,39 @@ RangeIsMapped (
   Status = gBS->GetMemoryMap(&MapSize, Map, &MapKey,
                              &DescriptorSize, &DescriptorVersion);
   if (Status != EFI_BUFFER_TOO_SMALL) {
-    Print(L"gBS->GetMemoryMap failed: %r\n", Status);
+    Print(L"gBS->GetMemoryMap failed to size: %r\n", Status);
     return EFI_UNSUPPORTED;
   }
 
-  //
-  // The UEFI specification advises to allocate more memory for
-  // the MemoryMap buffer between successive calls to GetMemoryMap(),
-  // since allocation of the new buffer may potentially increase
-  // memory map size.
-  //
-  Pages = EFI_SIZE_TO_PAGES(MapSize) + 1;
-  Map = AllocatePages(Pages);
-  if (Map == NULL) {
-    Print(L"AllocatePages failed\n");
-    return EFI_OUT_OF_RESOURCES;
-  }
+  do {
+    //
+    // The UEFI specification advises to allocate more memory for
+    // the MemoryMap buffer between successive calls to GetMemoryMap(),
+    // since allocation of the new buffer may potentially increase
+    // memory map size.
+    //
+    Pages = EFI_SIZE_TO_PAGES(MapSize) + 1;
+    Map = AllocatePages(Pages);
+    if (Map == NULL) {
+      Print(L"AllocatePages failed\n");
+      return EFI_OUT_OF_RESOURCES;
+    }
 
-  Status = gBS->GetMemoryMap(&MapSize, Map, &MapKey,
-                             &DescriptorSize, &DescriptorVersion);
-  if (EFI_ERROR(Status)) {
-    Print(L"gBS->GetMemoryMap failed: %r\n", Status);
-    FreePages(Map, Pages);
-    return Status;
-  }
+    Status = gBS->GetMemoryMap(&MapSize, Map, &MapKey,
+                               &DescriptorSize, &DescriptorVersion);
+    if (!EFI_ERROR(Status)) {
+      break;
+    }
+
+    if (EFI_ERROR(Status)) {
+      FreePages(Map, Pages);
+
+      if (Status != EFI_BUFFER_TOO_SMALL) {
+        Print(L"gBS->GetMemoryMap failed: %r\n", Status);
+        return Status;
+      }
+    }
+  } while (1);
 
   PerformQuickSort(Map, MapSize / DescriptorSize, DescriptorSize, MemoryMapSort);
   RangePages = EFI_SIZE_TO_PAGES(RangeLength);
@@ -173,7 +182,7 @@ RangeIsMapped (
 
     if (RangeNext >= Next->PhysicalStart &&
         RangeNext <= NextLast) {
-      UINTN RemPages = (NextLast - RangeNext + 1) / EFI_PAGE_SIZE;
+      UINTN RemPages = EFI_SIZE_TO_PAGES(NextLast - RangeNext + 1);
       RemPages = MIN(RemPages, RangePages);
       RangePages -= RemPages;
       RangeNext += RemPages * EFI_PAGE_SIZE;
