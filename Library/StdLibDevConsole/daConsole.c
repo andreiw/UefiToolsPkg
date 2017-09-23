@@ -497,18 +497,21 @@ da_ConStat(
 {
   ConInstance                        *Stream;
 
-// ConGetInfo
   Stream = BASE_CR(filp->f_ops, ConInstance, Abstraction);
-  // Quick check to see if Stream looks reasonable
   if ((Stream->Cookie != CON_COOKIE) ||    // Cookie == 'IoAb'
-      (Buffer == NULL))
-  {
+      (Buffer == NULL)) {
     errno     = EINVAL;
     EFIerrno = RETURN_INVALID_PARAMETER;
     return -1;
   }
-  // All of our parameters are correct, so fill in the information.
-  Buffer->st_blksize  = 0;   // Character device, not a block device
+
+  /*
+   * Because we don't provide an st_blocks,
+   * applications usually compute blocks by
+   * dividing by the block size. Setting this
+   * to 0 would be a mistake.
+   */
+  Buffer->st_blksize  = 1;
   Buffer->st_mode     = filp->f_iflags;
   Buffer->st_birthtime = time(NULL);
   Buffer->st_atime = Buffer->st_mtime = Buffer->st_birthtime;
@@ -864,14 +867,29 @@ __Cons_construct(
   RETURN_STATUS   Status;
   int             i;
   struct termios *Termio;
+  SHELL_FILE_HANDLE StdIn;
+  SHELL_FILE_HANDLE StdOut;
+  SHELL_FILE_HANDLE StdErr;
   EFI_SHELL_PARAMETERS_PROTOCOL *ShellParameters;
+  EFI_SHELL_INTERFACE           *EfiShellInterface;
 
   Status = gBS->HandleProtocol(ImageHandle, &gEfiShellParametersProtocolGuid,
                                (VOID **) &ShellParameters);
-  if (Status != EFI_SUCCESS) {
-    SystemTable->ConOut->OutputString(SystemTable->ConOut,
-                                      L"UEFI 2.0 Shell required, sorry.\r\n");
-    return Status;
+  if (Status == EFI_SUCCESS) {
+    StdIn = ShellParameters->StdIn;
+    StdOut = ShellParameters->StdOut;
+    StdErr = ShellParameters->StdErr;
+  } else {
+    Status = gBS->HandleProtocol(ImageHandle,
+                                 &gEfiShellInterfaceGuid,
+                                 (VOID **) &EfiShellInterface);
+    if (EFI_ERROR(Status)) {
+      return Status;
+    }
+
+    StdIn = EfiShellInterface->StdIn;
+    StdOut = EfiShellInterface->StdOut;
+    StdErr = EfiShellInterface->StdErr;
   }
 
   Status = RETURN_OUT_OF_RESOURCES;
@@ -905,19 +923,19 @@ __Cons_construct(
     case DEVCON_STDIN:
     case DEVCON_NSTDIN:
       Stream->Dev = SystemTable->ConIn;
-      ShellHandles[i] = ShellParameters->StdIn;
+      ShellHandles[i] = StdIn;
       ShellHandleTypes[i] = ShellHandleType(ShellHandles[i]);
       break;
     case DEVCON_STDOUT:
     case DEVCON_NSTDOUT:
       Stream->Dev = SystemTable->ConOut;
-      ShellHandles[i] = ShellParameters->StdOut;
+      ShellHandles[i] = StdOut;
       ShellHandleTypes[i] = ShellHandleType(ShellHandles[i]);
       break;
     case DEVCON_STDERR:
     case DEVCON_NSTDERR:
       Stream->Dev = SystemTable->StdErr;
-      ShellHandles[i] = ShellParameters->StdErr;
+      ShellHandles[i] = StdErr;
       ShellHandleTypes[i] = ShellHandleType(ShellHandles[i]);
 
       if (SystemTable->StdErr == NULL ||
@@ -929,7 +947,7 @@ __Cons_construct(
          * black hole.
          */
         Stream->Dev = SystemTable->ConOut;
-        ShellHandles[i] = ShellParameters->StdOut;
+        ShellHandles[i] = StdOut;
       }
       break;
     default:

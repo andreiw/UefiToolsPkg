@@ -2,6 +2,8 @@ This is a fixed-up version of edk2's `StdLib/LibC/Uefi/Devices/Console`.
 
 NOTE: [`StdExtLib`](../StdExtLib), [`StdLibDevConsole`](../StdLibDevConsole), [`StdLibInteractiveIO`](../StdLibInteractiveIO) and [`StdLibUefi`](../StdLibUefi) all go together.
 
+NOTE: the redirection/pipe features rely on using a v2 UEFI Shell.
+
 Differences:
 - if StdErr isn't redirected via Shell to a file, redirect it out to ConOut.
   This solves the unexpected behavior of POSIX apps seemingly printing
@@ -27,6 +29,10 @@ Differences:
   interactive console), and are useful for dealing with binary
   data. e.g. to make a perfect copy.
 - Strip UTF16 BOM tag from narrow StdOut/StdErr.
+- st_blksize == 1 to make up for lack of st_blocks
+  (so you can always st_physsize / st_blksize)
+- Support v1 Shell mode (e.g. VMware Fusion). Redirection/pipes
+  is a lost cause, but at least the basic use cases work.
 
 Improvements to make:
 - VINTR should raise signals.
