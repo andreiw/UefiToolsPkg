@@ -1,4 +1,4 @@
-/* Time-stamp: <2017-09-23 00:03:13 andreiw>
+/* Time-stamp: <2017-09-24 22:55:20 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -38,6 +38,7 @@ UefiMain (
   UINTN RangeLength;
   EFI_STATUS Status;
   GET_OPT_CONTEXT GetOptContext;
+  RANGE_CHECK_CONTEXT RangeCheck;
 
   Status = GetShellArgcArgv(ImageHandle, &Argc, &Argv);
   if (Status != EFI_SUCCESS || Argc < 1) {
@@ -73,7 +74,13 @@ UefiMain (
     return EFI_INVALID_PARAMETER;
   }
 
-  Status = RangeIsMapped(RangeStart, RangeLength, !Quiet);
+  Status = InitRangeCheckContext(TRUE, !Quiet, &RangeCheck);
+  if (EFI_ERROR(Status)) {
+    Print(L"Couldn't initialize range checking: %r\n", Status);
+    return Status;
+  }
+
+  Status = RangeIsMapped(&RangeCheck, RangeStart, RangeLength);
   if (!Quiet) {
     if (Status == EFI_SUCCESS) {
       Print(L"0x%lx-0x%lx is in the memory map\n", RangeStart,
@@ -83,5 +90,6 @@ UefiMain (
     }
   }
 
+  CleanRangeCheckContext(&RangeCheck);
   return Status;
 }

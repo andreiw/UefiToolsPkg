@@ -62,11 +62,32 @@ StriCmp (
          IN CONST CHAR16 *SecondString
          );
 
+typedef struct RANGE_CHECK_CONTEXT {
+  BOOLEAN Enabled;
+  BOOLEAN WarnIfNotFound;
+  UINTN MapSize;
+  UINTN MapPages;
+  UINTN DescriptorSize;
+  EFI_MEMORY_DESCRIPTOR *Map;
+} RANGE_CHECK_CONTEXT;
+
+EFI_STATUS
+InitRangeCheckContext (
+                       IN BOOLEAN Enabled,
+                       IN BOOLEAN WarnIfNotFound,
+                       OUT RANGE_CHECK_CONTEXT *Context
+                       );
+
+VOID
+CleanRangeCheckContext (
+                       IN OUT RANGE_CHECK_CONTEXT *Context
+                       );
+
 EFI_STATUS
 RangeIsMapped (
+               IN OUT RANGE_CHECK_CONTEXT *Context,
                IN UINTN RangeStart,
-               IN UINTN RangeLength,
-               IN BOOLEAN WarnIfNotFound
+               IN UINTN RangeLength
                );
 
 CHAR16 *

@@ -1,4 +1,4 @@
-/* Time-stamp: <2017-09-22 01:30:27 andreiw>
+/* Time-stamp: <2017-09-24 23:01:30 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -20,6 +20,8 @@
 
 #include <Guid/Acpi.h>
 
+static RANGE_CHECK_CONTEXT RangeCheck;
+
 static
 EFI_STATUS
 TableSave (
@@ -37,7 +39,7 @@ TableSave (
     return EFI_NOT_FOUND;
   }
 
-  Status = RangeIsMapped((UINTN) Table, sizeof(EFI_ACPI_DESCRIPTION_HEADER), TRUE);
+  Status = RangeIsMapped(&RangeCheck, (UINTN) Table, sizeof(EFI_ACPI_DESCRIPTION_HEADER));
   if (Status != EFI_SUCCESS) {
     Print(L"<could not validate mapping of table header: %r>\n", Status);
     return Status;
@@ -45,7 +47,7 @@ TableSave (
 
   Print(L"Table %.4a @ %p (0x%x bytes)\n", &Table->Signature, Table, Table->Length);
 
-  Status = RangeIsMapped((UINTN) Table, Table->Length, TRUE);
+  Status = RangeIsMapped(&RangeCheck, (UINTN) Table, Table->Length);
   if (Status != EFI_SUCCESS) {
     Print(L"<could not validate mapping of full table: %r>\n", Status);
     return Status;
@@ -109,13 +111,20 @@ UefiMain (
   if (Status == EFI_SUCCESS && Argc > 1) {
     VolSubDir = Argv[1];
   }
+
+  Status = InitRangeCheckContext(TRUE, TRUE, &RangeCheck);
+  if (EFI_ERROR(Status)) {
+    Print(L"Couldn't initialize range checking: %r\n", Status);
+    return Status;
+  }
+
   Print(L"Dumping tables to '\\%s'\n", VolSubDir);
 
   Status = gBS->HandleProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid,
                                 (void **) &ImageProtocol);
   if (Status != EFI_SUCCESS) {
     Print(L"Could not get loaded image device handle: %r\n", Status);
-    return Status;
+    goto done;
   }
 
   for (i = 0; i < 2; i++) {
@@ -127,7 +136,7 @@ UefiMain (
 
   if (Rsdp == NULL) {
     Print(L"No ACPI support found\n");
-    return Status;
+    goto done;
   }
 
   if (Rsdp->Revision >= EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER_REVISION) {
@@ -138,27 +147,29 @@ UefiMain (
 
   Status = EFI_NOT_FOUND;
   Rsdt = (EFI_ACPI_DESCRIPTION_HEADER *) (UINTN) Rsdp->RsdtAddress;
-  if (Xsdt != 0 && (Status = RangeIsMapped((UINTN) Xsdt,
-                                           sizeof(EFI_ACPI_DESCRIPTION_HEADER),
-                                           TRUE)) == EFI_SUCCESS) {
+  if (Xsdt != NULL &&
+      (Status = RangeIsMapped(&RangeCheck, (UINTN) Xsdt,
+                              sizeof(EFI_ACPI_DESCRIPTION_HEADER)))
+      == EFI_SUCCESS) {
     SdtTable = (UINTN) Xsdt;
     SdtTableEnd = SdtTable + Xsdt->Length;
     SdtEntrySize = sizeof(UINT64);
-  } else if (Rsdt != 0 && (Status = RangeIsMapped((UINTN) Rsdt,
-                                                  sizeof(EFI_ACPI_DESCRIPTION_HEADER),
-                                                  TRUE)) == EFI_SUCCESS) {
+  } else if (Rsdt != NULL &&
+             (Status = RangeIsMapped(&RangeCheck, (UINTN) Rsdt,
+                                     sizeof(EFI_ACPI_DESCRIPTION_HEADER)))
+             == EFI_SUCCESS) {
     SdtTable = (UINTN) Rsdt;
     SdtTableEnd = SdtTable + Rsdt->Length;
     SdtEntrySize = sizeof(UINT32);
   } else {
     Print(L"No valid RSDT/XSDT: %r\n", Status);
-    return Status;
+    goto done;
   }
 
-  Status = RangeIsMapped(SdtTable, SdtTableEnd - SdtTable, TRUE);
+  Status = RangeIsMapped(&RangeCheck, SdtTable, SdtTableEnd - SdtTable);
   if (Status != EFI_SUCCESS) {
     Print(L"Could not validate RSDT/XSDT mapping: %r\n", Status);
-    return Status;
+    goto done;
   }
 
   for (SdtTable += sizeof(EFI_ACPI_DESCRIPTION_HEADER);
@@ -207,5 +218,8 @@ UefiMain (
   }
 
   Print(L"All done!\n");
+
+done:
+  CleanRangeCheckContext(&RangeCheck);
   return Status;
 }

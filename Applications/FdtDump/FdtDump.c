@@ -1,4 +1,4 @@
-/* Time-stamp: <2017-09-23 00:12:39 andreiw>
+/* Time-stamp: <2017-09-24 23:01:22 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -30,6 +30,7 @@ UefiMain (
   CHAR16 **Argv;
   EFI_STATUS Status;
   EFI_LOADED_IMAGE_PROTOCOL *ImageProtocol;
+  RANGE_CHECK_CONTEXT RangeCheck;
   CHAR16 *VolSubDir;
   VOID *Fdt;
 
@@ -40,7 +41,9 @@ UefiMain (
   }
   Print(L"Dumping FDT to '\\%s'\n", VolSubDir);
 
-  Status = gBS->HandleProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (void **) &ImageProtocol);
+  Status = gBS->HandleProtocol (ImageHandle,
+                                &gEfiLoadedImageProtocolGuid,
+                                (void **) &ImageProtocol);
   if (Status != EFI_SUCCESS) {
     Print(L"Could not get loaded image device handle: %r\n", Status);
     return Status;
@@ -49,13 +52,20 @@ UefiMain (
   Fdt = GetTable(&gFdtTableGuid);
   if (Fdt == NULL) {
     Print(L"No Device Tree support found\n");
+    return EFI_NOT_FOUND;
+  }
+
+  Status = InitRangeCheckContext(TRUE, TRUE, &RangeCheck);
+  if (EFI_ERROR(Status)) {
+    Print(L"Couldn't initialize range checking: %r\n", Status);
     return Status;
   }
 
-  Status = RangeIsMapped((UINTN) Fdt, sizeof(struct fdt_header), TRUE);
+  Status = RangeIsMapped(&RangeCheck, (UINTN) Fdt,
+                         sizeof(struct fdt_header));
   if (Status != EFI_SUCCESS) {
     Print(L"Could not validate mapping of FDT header: %r\n", Status);
-    return Status;
+    goto done;
   }
 
   if (fdt_check_header(Fdt) != 0) {
@@ -68,5 +78,8 @@ UefiMain (
                  L"fdt.dtb", Fdt, fdt_totalsize(Fdt));
 
   Print(L"All done!\n");
+
+done:
+  CleanRangeCheckContext(&RangeCheck);
   return Status;
 }

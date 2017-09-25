@@ -13,7 +13,6 @@
 #include <Uefi.h>
 #include <Library/UefiLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/SortLib.h>
 #include <Library/UtilsLib.h>
 #include <Protocol/SimpleFileSystem.h>
 #include <Library/UefiBootServicesTableLib.h>
@@ -83,123 +82,6 @@ GetOpt(IN UINTN Argc,
   }
 
   Context->OptIndex += SkipCount;
-  return EFI_SUCCESS;
-}
-
-STATIC INTN EFIAPI
-MemoryMapSort (
-               IN CONST VOID *Buffer1,
-               IN CONST VOID *Buffer2
-               )
-{
-  CONST EFI_MEMORY_DESCRIPTOR *D1 = Buffer1;
-  CONST EFI_MEMORY_DESCRIPTOR *D2 = Buffer2;
-
-  if (D1->PhysicalStart < D2->PhysicalStart) {
-    return -1;
-  } else if (D1->PhysicalStart == D2->PhysicalStart) {
-    return 0;
-  } else {
-    return 1;
-  }
-}
-
-EFI_STATUS
-RangeIsMapped (
-               IN UINTN RangeStart,
-               IN UINTN RangeLength,
-               IN BOOLEAN WarnIfNotFound
-               )
-{
-  UINTN Pages;
-  UINTN MapKey;
-  UINTN MapSize;
-  UINTN Index;
-  UINTN RangeNext;
-  UINTN RangePages;
-  EFI_STATUS Status;
-  UINTN DescriptorSize;
-  UINT32 DescriptorVersion;
-  EFI_MEMORY_DESCRIPTOR *Map;
-  EFI_MEMORY_DESCRIPTOR *Next;
-
-  if (RangeLength == 0) {
-    Print(L"0x%lx-0x%lx is zero length\n", RangeStart, RangeStart);
-    return EFI_INVALID_PARAMETER;
-  }
-
-  Map = NULL;
-  MapSize = 0;
-  Status = gBS->GetMemoryMap(&MapSize, Map, &MapKey,
-                             &DescriptorSize, &DescriptorVersion);
-  if (Status != EFI_BUFFER_TOO_SMALL) {
-    Print(L"gBS->GetMemoryMap failed to size: %r\n", Status);
-    return EFI_UNSUPPORTED;
-  }
-
-  do {
-    //
-    // The UEFI specification advises to allocate more memory for
-    // the MemoryMap buffer between successive calls to GetMemoryMap(),
-    // since allocation of the new buffer may potentially increase
-    // memory map size.
-    //
-    Pages = EFI_SIZE_TO_PAGES(MapSize) + 1;
-    Map = AllocatePages(Pages);
-    if (Map == NULL) {
-      Print(L"AllocatePages failed\n");
-      return EFI_OUT_OF_RESOURCES;
-    }
-
-    Status = gBS->GetMemoryMap(&MapSize, Map, &MapKey,
-                               &DescriptorSize, &DescriptorVersion);
-    if (!EFI_ERROR(Status)) {
-      break;
-    }
-
-    if (EFI_ERROR(Status)) {
-      FreePages(Map, Pages);
-
-      if (Status != EFI_BUFFER_TOO_SMALL) {
-        Print(L"gBS->GetMemoryMap failed: %r\n", Status);
-        return Status;
-      }
-    }
-  } while (1);
-
-  PerformQuickSort(Map, MapSize / DescriptorSize, DescriptorSize, MemoryMapSort);
-  RangePages = EFI_SIZE_TO_PAGES(RangeLength);
-
-  for (RangeNext = RangeStart, Next = Map, Index = 0;
-       Index < (MapSize / DescriptorSize) &&
-         RangePages != 0;
-       Index++, Next = (VOID *)((UINTN)Next + DescriptorSize)) {
-    UINTN NextLast = Next->PhysicalStart - 1 + (Next->NumberOfPages * EFI_PAGE_SIZE);
-
-    if (RangeNext < Next->PhysicalStart) {
-      break;
-    }
-
-    if (RangeNext >= Next->PhysicalStart &&
-        RangeNext <= NextLast) {
-      UINTN RemPages = EFI_SIZE_TO_PAGES(NextLast - RangeNext + 1);
-      RemPages = MIN(RemPages, RangePages);
-      RangePages -= RemPages;
-      RangeNext += RemPages * EFI_PAGE_SIZE;
-    }
-  }
-
-  FreePages(Map, Pages);
-
-  if (RangePages != 0) {
-    if (WarnIfNotFound) {
-      Print(L"0x%lx-0x%lx not in memory map (starting at 0x%lx)\n", RangeStart,
-            RangeLength - 1 + RangeStart, RangeNext);
-    }
-
-    return EFI_NOT_FOUND;
-  }
-
   return EFI_SUCCESS;
 }
 

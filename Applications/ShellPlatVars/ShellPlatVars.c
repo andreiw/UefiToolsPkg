@@ -1,4 +1,4 @@
-/* Time-stamp: <2017-09-23 00:11:14 andreiw>
+/* Time-stamp: <2017-09-24 23:01:33 andreiw>
  * Copyright (C) 2017 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -26,6 +26,8 @@
 #include <Guid/Fdt.h>
 #include <libfdt.h>
 #endif
+
+static RANGE_CHECK_CONTEXT RangeCheck;
 
 static
 VOID
@@ -256,15 +258,15 @@ SetACPIVars (
   }
 
   Rsdt = (EFI_ACPI_DESCRIPTION_HEADER *) (UINTN) Rsdp->RsdtAddress;
-  if (Xsdt != 0 && RangeIsMapped((UINTN) Xsdt,
-                                 sizeof(EFI_ACPI_DESCRIPTION_HEADER),
-                                 FALSE) == EFI_SUCCESS) {
+  if (Xsdt != 0 && RangeIsMapped(&RangeCheck, (UINTN) Xsdt,
+                                 sizeof(EFI_ACPI_DESCRIPTION_HEADER))
+      == EFI_SUCCESS) {
     SdtTable = (UINTN) Xsdt;
     SdtTableEnd = SdtTable + Xsdt->Length;
     SdtEntrySize = sizeof(UINT64);
-  } else if (Rsdt != 0 && RangeIsMapped((UINTN) Rsdt,
-                                        sizeof(EFI_ACPI_DESCRIPTION_HEADER),
-                                        FALSE) == EFI_SUCCESS) {
+  } else if (Rsdt != 0 && RangeIsMapped(&RangeCheck, (UINTN) Rsdt,
+                                        sizeof(EFI_ACPI_DESCRIPTION_HEADER))
+             == EFI_SUCCESS) {
     SdtTable = (UINTN) Rsdt;
     SdtTableEnd = SdtTable + Rsdt->Length;
     SdtEntrySize = sizeof(UINT32);
@@ -284,9 +286,9 @@ SetACPIVars (
     }
 
     if (TableHeader == NULL ||
-        RangeIsMapped((UINTN) TableHeader,
-                      sizeof(EFI_ACPI_DESCRIPTION_HEADER),
-                      FALSE) != EFI_SUCCESS) {
+        RangeIsMapped(&RangeCheck, (UINTN) TableHeader,
+                      sizeof(EFI_ACPI_DESCRIPTION_HEADER))
+        != EFI_SUCCESS) {
       continue;
     }
 
@@ -310,14 +312,16 @@ SetACPIVars (
       }
 
       if (DsdtHeader != NULL &&
-          RangeIsMapped((UINTN) DsdtHeader, sizeof(EFI_ACPI_DESCRIPTION_HEADER),
-                        FALSE) == EFI_SUCCESS) {
+          RangeIsMapped(&RangeCheck, (UINTN) DsdtHeader,
+                        sizeof(EFI_ACPI_DESCRIPTION_HEADER))
+          == EFI_SUCCESS) {
         SetACPITableVar(DsdtHeader);
       }
 
       if (FacsHeader != NULL &&
-          RangeIsMapped((UINTN) FacsHeader, sizeof(EFI_ACPI_DESCRIPTION_HEADER),
-                        FALSE) == EFI_SUCCESS) {
+          RangeIsMapped(&RangeCheck, (UINTN) FacsHeader,
+                        sizeof(EFI_ACPI_DESCRIPTION_HEADER))
+          == EFI_SUCCESS) {
         SetACPITableVar(FacsHeader);
       }
     }
@@ -339,9 +343,9 @@ HandleFdt (
 
   Fdt = GetTable(&gFdtTableGuid);
   if (Fdt != NULL &&
-      RangeIsMapped((UINTN) Fdt,
-                    sizeof(struct fdt_header),
-                    FALSE) == EFI_SUCCESS &&
+      RangeIsMapped(&RangeCheck, (UINTN) Fdt,
+                    sizeof(struct fdt_header))
+      == EFI_SUCCESS &&
       fdt_check_header(Fdt) == 0) {
     HaveFdt = TRUE;
   }
@@ -397,6 +401,12 @@ UefiMain (
     return EFI_ABORTED;
   }
 
+  Status = InitRangeCheckContext(TRUE, FALSE, &RangeCheck);
+  if (EFI_ERROR(Status)) {
+    Print(L"Couldn't initialize range checking: %r\n", Status);
+    return Status;
+  }
+
   for (i = 0; i < 2; i++) {
     Rsdp = GetTable(&AcpiGuids[i]);
     if (Rsdp != NULL) {
@@ -408,12 +418,13 @@ UefiMain (
   ShellSetEnvironmentVariable(L"pvar-have-smbios",
                               SmBiosTable == NULL ? L"False" : L"True", TRUE);
   if (SmBiosTable != NULL &&
-      RangeIsMapped((UINTN) SmBiosTable, sizeof(SMBIOS_TABLE_ENTRY_POINT),
-                    FALSE) == EFI_SUCCESS &&
+      RangeIsMapped(&RangeCheck, (UINTN) SmBiosTable,
+                    sizeof(SMBIOS_TABLE_ENTRY_POINT))
+      == EFI_SUCCESS &&
       SmBiosTable->TableAddress != 0 &&
       SmBiosTable->TableLength != 0 &&
-      RangeIsMapped(SmBiosTable->TableAddress,
-                    SmBiosTable->TableLength, FALSE) == EFI_SUCCESS) {
+      RangeIsMapped(&RangeCheck, SmBiosTable->TableAddress,
+                    SmBiosTable->TableLength) == EFI_SUCCESS) {
     Print(L"Parsing 32-bit SMBIOS\n");
     ParseSmBios((UINT8 *) (UINTN) SmBiosTable->TableAddress,
                 SmBiosTable->TableLength);
@@ -423,11 +434,12 @@ UefiMain (
   ShellSetEnvironmentVariable(L"pvar-have-smbios64",
                               SmBios64Table == NULL ? L"False" : L"True", TRUE);
   if (SmBios64Table != NULL &&
-      RangeIsMapped((UINTN) SmBios64Table,
-                    sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT), FALSE) == EFI_SUCCESS &&
+      RangeIsMapped(&RangeCheck, (UINTN) SmBios64Table,
+                    sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT))
+                    == EFI_SUCCESS &&
       SmBios64Table->TableAddress != 0 &&
-      RangeIsMapped(SmBios64Table->TableAddress,
-                    sizeof(UINTN), FALSE) == EFI_SUCCESS) {
+      RangeIsMapped(&RangeCheck, SmBios64Table->TableAddress,
+                    sizeof(UINTN)) == EFI_SUCCESS) {
     Print(L"Parsing 64-bit SMBIOS\n");
     UINTN Length = CalculateSmBios64Length(SmBios64Table);
     ParseSmBios((UINT8 *) (UINTN) SmBios64Table->TableAddress,
@@ -444,5 +456,7 @@ UefiMain (
 #ifdef WITH_FDT
   HandleFdt();
 #endif
+
+  CleanRangeCheckContext(&RangeCheck);
   return Status;
 }
