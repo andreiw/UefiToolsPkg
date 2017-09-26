@@ -51,6 +51,7 @@ Name | Description | Notes
 [RangeIsMapped](Applications/RangeIsMapped) | validates ranges in the memory map | [`README.md`](Applications/RangeIsMapped/README.md)
 [GopTool](Applications/GopTool) | check and manipulate EFI_GRAPHICS_OUTPUT_PROTOCOL instances | [`README.md`](Applications/GopTool/README.md)
 [SetCon](Applications/SetCon) | check and manipulate console device variables | [`README.md`](Applications/SetCon/README.md)
+[PciRom](Applications/PciRom) | list PCI ROM images | [`README.md`](Applications/RomPci/README.md)
 [tinycc](https://github.com/andreiw/tinycc) | port of TinyCC to UEFI | [`README.md`](https://github.com/andreiw/tinycc/blob/mob/README.md#tcc-in-uefi)
 
 UNIX Tools

@@ -1,5 +1,5 @@
 #
-# Time-stamp: <2017-09-23 01:42:53 andreiw>
+# Time-stamp: <2017-09-24 23:05:35 andreiw>
 # Copyright (C) 2017 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
@@ -111,6 +111,7 @@
   UefiToolsPkg/Applications/MemResv/MemResv.inf
   UefiToolsPkg/Applications/RangeIsMapped/RangeIsMapped.inf
   UefiToolsPkg/Applications/GopTool/GopTool.inf
+  UefiToolsPkg/Applications/PciRom/PciRom.inf
   UefiToolsPkg/Applications/SetCon/SetCon.inf
   UefiToolsPkg/Applications/ls/ls.inf
   UefiToolsPkg/Applications/stat/stat.inf
