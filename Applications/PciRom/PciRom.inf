@@ -1,5 +1,5 @@
 #
-# Time-stamp: <2017-09-24 23:05:10 andreiw>
+# Time-stamp: <2017-09-28 23:31:35 andreiw>
 # Copyright (C) 2017 Andrei Evgenievich Warkentin
 #
 # This program and the accompanying materials
@@ -34,3 +34,4 @@
 
 [Protocols]
   gEfiPciIoProtocolGuid
+  gEfiLoadedImageProtocolGuid

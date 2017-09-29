@@ -1,4 +1,4 @@
-/* Time-stamp: <2017-09-24 23:01:30 andreiw>
+/* Time-stamp: <2017-09-28 23:31:23 andreiw>
  * Copyright (C) 2016 Andrei Evgenievich Warkentin
  *
  * This program and the accompanying materials
@@ -31,7 +31,7 @@ TableSave (
            )
 {
   EFI_STATUS Status;
-  static unsigned Index;
+  static unsigned Index = 0;
   CHAR16 Path[3 + 4 + 1 + 3 + 1];
 
   if (Table == NULL) {

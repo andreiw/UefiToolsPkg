@@ -18,13 +18,17 @@
 #include <Protocol/PciIo.h>
 #include <Protocol/DevicePath.h>
 #include <IndustryStandard/Pci.h>
+#include <Protocol/LoadedImage.h>
+
+static CHAR16 *VolSubDir = NULL;
+static EFI_HANDLE DeviceHandle = NULL;
 
 static EFI_STATUS
 Usage (
        IN CHAR16 *Name
        )
 {
-  Print(L"Usage: %s seg bus dev func\n", Name);
+  Print(L"Usage: %s [-s where] seg bus dev func\n", Name);
   return EFI_INVALID_PARAMETER;
 }
 
@@ -37,32 +41,79 @@ DumpImage (
            )
 {
   CHAR16 *Type;
-  EFI_PCI_EXPANSION_ROM_HEADER *EfiRomHeader;
   UINTN RomOffset = (UINTN) RomHeader - (UINTN) RomImage;
 
   if (Pcir->CodeType == PCI_CODE_TYPE_EFI_IMAGE) {
-    Type = L"EFI";
+    Type = L"UEFI";
   } else if (Pcir->CodeType == PCI_CODE_TYPE_PCAT_IMAGE) {
     Type = L"BIOS";
+  } else if (Pcir->CodeType == 1) {
+    Type = L"1275";
+  } else if (Pcir->CodeType == 2) {
+    Type = L"HPPA";
   } else {
-    Type = L"Unknown";
+    Type = L"????";
   }
 
   Print(L"+0x%x: %s image (0x%x bytes)\n", RomOffset, Type, Length);
-  if (Pcir->CodeType != PCI_CODE_TYPE_EFI_IMAGE) {
-    return;
+  if (Pcir->CodeType == PCI_CODE_TYPE_EFI_IMAGE) {
+    EFI_PCI_EXPANSION_ROM_HEADER *EfiRomHeader = (void *) RomHeader;
+    UINTN InitializationSize = EfiRomHeader->InitializationSize * 512;
+    EfiRomHeader = (void *) RomHeader;
+    Print(L"          Machine Type: 0x%x\n", EfiRomHeader->EfiMachineType);
+    Print(L"             Subsystem: 0x%x\n", EfiRomHeader->EfiSubsystem);
+    Print(L"    InitializationSize: 0x%x (bytes)\n", InitializationSize);
+    Print(L"  EfiImageHeaderOffset: 0x%x\n",
+          EfiRomHeader->EfiImageHeaderOffset);
+    Print(L"            Compressed: %s\n",
+          EfiRomHeader->CompressionType == 0 ? L"no" : L"yes");
+
+    if (Length < InitializationSize ||
+        EfiRomHeader->EfiImageHeaderOffset > InitializationSize) {
+      Print(L"  Image is corrupted%s\n", VolSubDir != NULL ?
+            L"(not saving)" : L"");
+      return;
+    }
+
+    Length = InitializationSize - EfiRomHeader->EfiImageHeaderOffset;
+    RomHeader = (UINT8 *) EfiRomHeader + EfiRomHeader->EfiImageHeaderOffset;
   }
 
-  EfiRomHeader = (void *) RomHeader;
-  Print(L"  Machine Type: 0x%x\n", EfiRomHeader->EfiMachineType);
-  Print(L"  Subsystem:    0x%x\n", EfiRomHeader->EfiSubsystem);
+  if (VolSubDir != NULL) {
+    static unsigned Index = 0;
+    CHAR16 Path[3 + 4 + 1 + 3 + 1];
+    /*
+     * Okay, really save.
+     */
+    Index = Index % 100;
+    Path[0] = '0' + Index / 10;
+    Path[1] = '0' + Index % 10;
+    Path[2] = '-';
+    Path[3] = Type[0];
+    Path[4] = Type[1];
+    Path[5] = Type[2];
+    Path[6] = Type[3];
+    Path[7] = L'.';
+    Path[8] = L'r';
+    Path[9] = L'o';
+    Path[10] = L'm';
+    Path[11] = L'\0';
+    Index++;
+    /*
+     * FileSystemSave does sufficient logging.
+     */
+    Print(L"Saving %s\\%s\n", VolSubDir, Path);
+    FileSystemSave(DeviceHandle,
+                   VolSubDir, Path,
+                   RomHeader, Length);
+  }
 }
 
 static VOID
-ListROMImages (
-               IN VOID   *RomImage,
-               IN UINT64 RomSize
-               )
+DumpImages (
+            IN VOID   *RomImage,
+            IN UINT64 RomSize
+            )
 {
   PCI_EXPANSION_ROM_HEADER *RomHeader;
   PCI_DATA_STRUCTURE       *RomPcir;
@@ -128,7 +179,7 @@ AnalyzeROM (
 
   Print(L"ROM 0x%08x bytes\n", PciIo->RomSize);
   Print(L"--------------------\n");
-  ListROMImages(PciIo->RomImage, PciIo->RomSize);
+  DumpImages(PciIo->RomImage, PciIo->RomSize);
   return EFI_SUCCESS;
 }
 
@@ -161,9 +212,29 @@ UefiMain (
   }
 
   INIT_GET_OPT_CONTEXT(&GetOptContext);
-  while ((Status = GetOpt(Argc, Argv, L"",
+  while ((Status = GetOpt(Argc, Argv, L"s",
                           &GetOptContext)) == EFI_SUCCESS) {
     switch (GetOptContext.Opt) {
+    case 's': {
+        EFI_LOADED_IMAGE_PROTOCOL *ImageProtocol;
+
+        VolSubDir = GetOptContext.OptArg;
+        if (VolSubDir == NULL) {
+          VolSubDir = L".";
+        }
+
+        Status = gBS->HandleProtocol(ImageHandle,
+                                     &gEfiLoadedImageProtocolGuid,
+                                     (void **) &ImageProtocol);
+        if (Status != EFI_SUCCESS) {
+          Print(L"Couldn't get loaded image device handle: %r\n",
+                Status);
+          return Status;
+        }
+
+        DeviceHandle = ImageProtocol->DeviceHandle;
+        break;
+    }
     default:
       Print(L"Unknown option '%c'\n", GetOptContext.Opt);
       return Usage(Argv[0]);
