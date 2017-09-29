@@ -58,6 +58,7 @@ EFI-Toolkit | Unmaintained set of pre-UEFI tools and libraries | https://github.
 
 Name | Description | Where
 --- | --- | ---
+fasmg-ebc | An EFI Byte Code (EBC) assembler | https://github.com/pbatard/fasmg-ebc
 EfiGlyphEditor | EFI Glyph editor | https://github.com/apop2/EfiGlyphEditor 
 UEFITool | Parsing, extracting and modifying UEFI firmware images | https://github.com/LongSoft/UEFIToolTE2PE | TE to PE32 converter | https://github.com/LongSoft/TE2PE
 VisualUEFI | EDK-II Development with Visual Studio | https://github.com/ionescu007/VisualUefi
