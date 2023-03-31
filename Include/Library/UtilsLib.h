@@ -51,11 +51,6 @@ GetTable (
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #endif
 
-CHAR16
-CharToUpper (
-             IN CHAR16 Char
-             );
-
 INTN
 StriCmp (
          IN CONST CHAR16 *FirstString,

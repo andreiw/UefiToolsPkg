@@ -27,7 +27,7 @@
   ShellPkg/ShellPkg.dec
   UefiToolsPkg/UefiToolsPkg.dec
 
-[Packages.ARM,Packages.AARCH64,Packages.PPC64]
+[Packages.ARM,Packages.AARCH64,Packages.RISCV64]
   EmbeddedPkg/EmbeddedPkg.dec
 
 [LibraryClasses]
@@ -35,19 +35,19 @@
   ShellLib
   UtilsLib
 
-[LibraryClasses.ARM,LibraryClasses.AARCH64,LibraryClasses.PPC64]
+[LibraryClasses.ARM,LibraryClasses.AARCH64,LibraryClasses.RISCV64]
   FdtLib
 
 [Guids]
   gEfiSmbiosTableGuid
   gEfiSmbios3TableGuid
 
-[Guids.ARM,Guids.AARCH64,Guids.PPC64]
+[Guids.ARM,Guids.AARCH64,Guids.RISCV64]
   gFdtTableGuid
 
 [Protocols]
 
-[BuildOptions.ARM,BuildOptions.AARCH64,BuildOptions.PPC64]
+[BuildOptions.ARM,BuildOptions.AARCH64,BuildOptions.RISCV64]
  GCC:*_*_*_CC_FLAGS = -DWITH_FDT
  XCODE:*_*_*_CC_FLAGS = -DWITH_FDT
  RVCT:*_*_*_CC_FLAGS = -DWITH_FDT

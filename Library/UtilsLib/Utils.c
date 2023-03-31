@@ -174,18 +174,6 @@ GetTable (
   return NULL;
 }
 
-CHAR16
-CharToUpper (
-             IN CHAR16 Char
-             )
-{
-  if (Char >= L'a' && Char <= L'z') {
-    return (CHAR16) (Char - (L'a' - L'A'));
-  }
-
-  return Char;
-}
-
 INTN
 StriCmp (
          IN CONST CHAR16 *FirstString,
