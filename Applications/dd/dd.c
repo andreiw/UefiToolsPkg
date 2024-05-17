@@ -441,7 +441,7 @@ dd_in(void)
 				++st.swab;
 				--n;
 			}
-			swab(in.dbp, in.dbp, n);
+			//swab(in.dbp, in.dbp, n);
 		}
 
 		in.dbp += in.dbrcnt;
