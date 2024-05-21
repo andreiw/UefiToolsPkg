@@ -35,8 +35,29 @@
   gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|$(DEBUG_PROPERTY_MASK)
   gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|$(DEBUG_PRINT_ERROR_LEVEL)
 
+!include StdLib/StdLib.inc
+#
+# The following are *overrides* to StdLib libs. The section under
+# which they are included *must match StdLib.inc.
+#
+# Also, stuff might randomly break if StdLib changes in incompatible
+# ways. You've been warned. On the positive note, StdLib/LibC/Uefi/Devices/Console
+# hasn't seen any action since Jan 10, 2016.
+#
+[LibraryClasses.Common.UEFI_APPLICATION]
+  LibUefi|UefiToolsPkg/Library/StdLibUefi/Uefi.inf
+  LibIIO|UefiToolsPkg/Library/StdLibInteractiveIO/IIO.inf
+  DevConsole|UefiToolsPkg/Library/StdLibDevConsole/daConsole.inf
+
 [LibraryClasses]
+  #
+  # These are the libraries provided.
+  #
+  FTSLib|UefiToolsPkg/Library/FTSLib/FTSLib.inf
   UtilsLib|UefiToolsPkg/Library/UtilsLib/UtilsLib.inf
+  StdExtLib|UefiToolsPkg/Library/StdExtLib/StdExtLib.inf
+  SoftFloatLib|UefiToolsPkg/Library/SoftFloatLib/SoftFloatLib.inf
+  RegexLib|UefiToolsPkg/Library/RegexLib/RegexLib.inf
   #
   # Everything else below is a dependency.
   #
@@ -57,6 +78,7 @@
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
   SortLib|MdeModulePkg/Library/UefiSortLib/UefiSortLib.inf
+  PeCoffGetEntryPointLib|MdePkg/Library/BasePeCoffGetEntryPointLib/BasePeCoffGetEntryPointLib.inf
   #
   # Shell lib pulls these dependencies.
   #
@@ -65,9 +87,47 @@
   HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
   ShellLib|ShellPkg/Library/UefiShellLib/UefiShellLib.inf
   HandleParsingLib|ShellPkg/Library/UefiHandleParsingLib/UefiHandleParsingLib.inf
+  #
+  # StdLib deps.
+  #
+  UefiRuntimeLib|MdePkg/Library/UefiRuntimeLib/UefiRuntimeLib.inf
+  UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.inf
+  #
+  # It is not possible to prevent the ARM compiler from inserting calls to intrinsic functions.
+  # This library provides the instrinsic functions such a compiler may generate calls to.
+  #
+  NULL|ArmPkg/Library/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
 
 [LibraryClasses.ARM,LibraryClasses.AARCH64,LibraryClasses.RISCV64]
   FdtLib|EmbeddedPkg/Library/FdtLib/FdtLib.inf
 
 [Components]
+  UefiToolsPkg/Applications/GdbSyms/GdbSyms.inf
+  UefiToolsPkg/Applications/AcpiDump/AcpiDump.inf
+  UefiToolsPkg/Applications/AcpiLoader/AcpiLoader.inf
   UefiToolsPkg/Applications/ShellPlatVars/ShellPlatVars.inf
+  UefiToolsPkg/Applications/ShellErrVars/ShellErrVars.inf
+  UefiToolsPkg/Applications/ShellMapVar/ShellMapVar.inf
+  UefiToolsPkg/Applications/MemResv/MemResv.inf
+  UefiToolsPkg/Applications/RangeIsMapped/RangeIsMapped.inf
+  UefiToolsPkg/Applications/GopTool/GopTool.inf
+  UefiToolsPkg/Applications/PciRom/PciRom.inf
+  UefiToolsPkg/Applications/SetCon/SetCon.inf
+  UefiToolsPkg/Applications/ls/ls.inf
+  UefiToolsPkg/Applications/stat/stat.inf
+  UefiToolsPkg/Applications/cat/cat.inf
+  UefiToolsPkg/Applications/dd/dd.inf
+  UefiToolsPkg/Applications/grep/grep.inf
+
+[Components.X64,Components.AArch64]
+#  UefiToolsPkg/Applications/tinycc/TCCInUEFI.inf
+
+[Components.ARM,Components.AARCH64,Components.PPC64]
+  UefiToolsPkg/Applications/FdtDump/FdtDump.inf
+
+#[Components.IA32,Components.X64,Components.ARM,Components.AArch64]
+#  UefiToolsPkg/Drivers/QemuVideoDxe/QemuVideoDxe.inf {
+#    <LibraryClasses>
+#      FrameBufferBltLib|MdeModulePkg/Library/FrameBufferBltLib/FrameBufferBltLib.inf
+#      PciLib|MdePkg/Library/UefiPciLibPciRootBridgeIo/UefiPciLibPciRootBridgeIo.inf
+#  }

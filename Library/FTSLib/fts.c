@@ -1023,7 +1023,7 @@ fts_alloc(FTS *sp, void *nameb, size_t namelen, int wide)
 
 	/* Copy the name and guarantee NUL termination. */
         if (wide) {
-          UnicodeStrToAsciiStr(nameb, p->fts_name);
+          UnicodeStrToAsciiStrS(nameb, p->fts_name, namelen);
         } else {
           memcpy(p->fts_name, nameb, namelen);
         }
